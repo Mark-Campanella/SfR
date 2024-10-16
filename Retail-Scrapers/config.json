@@ -1,0 +1,113 @@
+{
+ "version": "auto-py-to-exe-configuration_v1",
+ "pyinstallerOptions": [
+  {
+   "optionDest": "noconfirm",
+   "value": true
+  },
+  {
+   "optionDest": "filenames",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/interface.py"
+  },
+  {
+   "optionDest": "onefile",
+   "value": false
+  },
+  {
+   "optionDest": "console",
+   "value": false
+  },
+  {
+   "optionDest": "icon_file",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/statics/favicon.ico"
+  },
+  {
+   "optionDest": "name",
+   "value": "SfR"
+  },
+  {
+   "optionDest": "contents_directory",
+   "value": "Files"
+  },
+  {
+   "optionDest": "clean_build",
+   "value": false
+  },
+  {
+   "optionDest": "strip",
+   "value": false
+  },
+  {
+   "optionDest": "noupx",
+   "value": false
+  },
+  {
+   "optionDest": "disable_windowed_traceback",
+   "value": false
+  },
+  {
+   "optionDest": "uac_admin",
+   "value": false
+  },
+  {
+   "optionDest": "uac_uiaccess",
+   "value": false
+  },
+  {
+   "optionDest": "argv_emulation",
+   "value": false
+  },
+  {
+   "optionDest": "bootloader_ignore_signals",
+   "value": false
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "selenium"
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "pandas"
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "selenium-stealth"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/outputs;outputs/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/scrapers;scrapers/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/statics;statics/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/MANIFEST.md;."
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/requirements.txt;."
+  },
+  {
+   "optionDest": "pathex",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/enviroment/Lib/site-packages/selenium_stealth"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/Retail-Scrapers - App/enviroment/Lib/site-packages/selenium_stealth;."
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "wakepy"
+  }
+ ],
+ "nonPyinstallerOptions": {
+  "increaseRecursionLimit": true,
+  "manualArguments": ""
+ }
+}
