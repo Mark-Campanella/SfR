@@ -307,8 +307,12 @@ def run(keywords:str, country:str, need_change_location:str) -> None:
             Iterates for each link, in the end let go of the list of links
         '''
         global product_link
-        for link in product_link: process_product(driver, link)
-
+        pd.DataFrame(product_link, columns=['Product Links']).drop_duplicates().to_csv("statics/product_links_Amz.csv",index=False)
+        i = 1
+        for link in product_link:
+            print(f"Processing: {i/len(product_link)}")
+            process_product(driver, link)
+            i+=1
         product_link.clear()
         
     # -------------------------------------------------------------------------------------------------------------------#
@@ -326,14 +330,16 @@ def run(keywords:str, country:str, need_change_location:str) -> None:
         search_btn = driver.find_element(By.ID, class_submit_btn)#go to the button
         search_btn.click()#click in the search button
         driver.implicitly_wait(5)#wait for the page to load
-        
+        i=1
         while True:
             '''
             For each page, scrape the links until you find no more pages
             '''
+            print("Processing page: ",i)
             scrape_page(driver)
-            if next_page: driver.get(next_page)
-                
+            if next_page:
+                driver.get(next_page)
+                i+=1 
             else: break
                 
         #Now for each link gotten, find the infos we need        

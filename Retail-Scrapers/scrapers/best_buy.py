@@ -10,9 +10,81 @@ import pandas as pd
 from scrapers.routines.Laundry.bb_file_cleaner import cleanup
 from scrapers.routines.Laundry.bb_merger import merge
 import random
-def run(keywords:str)-> None:
-    #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
 
+
+
+
+#-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
+url = "https://www.bestbuy.com/?intl=nosplash"
+
+
+#-----------------------------------------------------Do Not Modify if no changes are required------------------------------------------------------#
+
+class_search_bar = "search-input"
+class_search_button = "header-search-button"
+
+class_items = "sku-item"
+class_next_button = "sku-list-page-next"
+
+
+class_product_5_star = "ugc-c-review-average.font-weight-medium.order-1"
+class_product_review_amount = "c-reviews.order-2"
+class_product_sku = "product-data-value.body-copy"
+class_product_img="primary-image.max-w-full.max-h-full"
+
+class_product_price = "priceView-hero-price.priceView-customer-price"
+class_product_price_btn_modal = "priceView-tap-to-view-price.priceView-tap-to-view-price-bold"
+class_product_price_div_modal = 'restricted-pricing__regular-price-section'
+class_product_price_innerdiv_modal = 'pricing-price'
+class_product_price_btn_close_modal = "c-close-icon.c-modal-close-icon"
+
+class_product_features_btn = "c-button-unstyled.features-drawer-btn.w-full.flex.justify-content-between.align-items-center.py-200"
+class_product_features_seemore_btn = "c-button-unstyled.see-more-button.btn-link.bg-none.p-none.border-none.text-style-body-lg-500"
+class_product_features_description_text = "description-text.lv.text-style-body-lg-400"
+class_product_features_div_of_ul_li = "pdp-utils-product-info"
+
+class_btn_more_images = 'image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-corners.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-100.z-1'
+class_div_images =  "c-tile.border.rounded.v-base.thumbnail-container"
+class_div_btn_images = "image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative"
+class_videos_btn = 'tab-title.v-bg-pure-white.border-none.text-primary.heading-6.p-0.relative.t-1px.heading-6.v-fw-regular'
+class_videos_list = 'thumbnail-content.inline-block.mr-150.inline-align-top.mb-300.w-full'
+class_each_video_btn = 'video-image-button.align-items-center.bg-cover.bg-transparent.flex.flex-row.border-none.justify-center.p-none.relative'
+
+class_show_full_specs = "c-button.c-button-outline.c-button-md.show-full-specs-btn.col-xs-6"
+class_ul_item_specs = "zebra-stripe-list.inline.m-none.p-none"
+class_li_item_specs = "zebra-list-item.mt-500"
+class_div_each_spec = "zebra-row.flex.p-200.justify-content-between.body-copy-lg"
+class_div_spec_type = "mr-100.inline"
+class_div_spec_text = "w-full"
+
+# Global Variables
+next_page = None
+links = []
+products_data = []
+main_headers = ["Link", "Name", "SKU", "Price", "Five Star", "Review Amount", "Image Link", 'Description', 'More Images Links', 'Videos Links'] 
+#Links - test and speed process
+test_links = "statics/test_product_link_BB.csv"
+real_links = "statics/product_link_BB.csv"
+#Outputs
+test_output_path = 'outputs/Best_Buy/test_product_data.csv'
+real_output_path= 'outputs/Best_Buy/product_data.csv'
+#other paths
+old_file = 'statics/old_file.csv'
+#Force run
+no_file = "statics/no_file.csv"
+
+def run(keywords:str)-> None:
+    global next_page
+    global products_data
+    global links
+    global main_headers
+    global test_links
+    global real_links
+    global test_output_path
+    global real_output_path
+    global old_file
+    global no_file
+    #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
     chrome_options = Options()
     user_agents = [
         # Add your list of user agents here
@@ -58,56 +130,10 @@ def run(keywords:str)-> None:
             renderer="Intel Iris OpenGL Engine",
             fix_hairline=True)
 
-    #-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
-    url = "https://www.bestbuy.com/?intl=nosplash"
+
     search_for = keywords
-
-    #-----------------------------------------------------Do Not Modify if no changes are required------------------------------------------------------#
-
-    class_search_bar = "search-input"
-    class_search_button = "header-search-button"
-
-    class_items = "sku-item"
-    class_next_button = "sku-list-page-next"
-
-
-    class_product_5_star = "ugc-c-review-average.font-weight-medium.order-1"
-    class_product_review_amount = "c-reviews.order-2"
-    class_product_sku = "product-data-value.body-copy"
-    class_product_img="primary-image.max-w-full.max-h-full"
-
-    class_product_price = "priceView-hero-price.priceView-customer-price"
-    class_product_price_btn_modal = "priceView-tap-to-view-price.priceView-tap-to-view-price-bold"
-    class_product_price_div_modal = 'restricted-pricing__regular-price-section'
-    class_product_price_innerdiv_modal = 'pricing-price'
-    class_product_price_btn_close_modal = "c-close-icon.c-modal-close-icon"
-
-    class_product_features_btn = "c-button-unstyled.features-drawer-btn.w-full.flex.justify-content-between.align-items-center.py-200"
-    class_product_features_seemore_btn = "c-button-unstyled.see-more-button.btn-link.bg-none.p-none.border-none.text-style-body-lg-500"
-    class_product_features_description_text = "description-text.lv.text-style-body-lg-400"
-    class_product_features_div_of_ul_li = "pdp-utils-product-info"
-
-    class_btn_more_images = 'image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-corners.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-100.z-1'
-    class_div_images =  "c-tile.border.rounded.v-base.thumbnail-container"
-    class_div_btn_images = "image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative"
-    class_videos_btn = 'tab-title.v-bg-pure-white.border-none.text-primary.heading-6.p-0.relative.t-1px.heading-6.v-fw-regular'
-    class_videos_list = 'thumbnail-content.inline-block.mr-150.inline-align-top.mb-300.w-full'
-    class_each_video_btn = 'video-image-button.align-items-center.bg-cover.bg-transparent.flex.flex-row.border-none.justify-center.p-none.relative'
-
-    class_show_full_specs = "c-button.c-button-outline.c-button-md.show-full-specs-btn.col-xs-6"
-    class_ul_item_specs = "zebra-stripe-list.inline.m-none.p-none"
-    class_li_item_specs = "zebra-list-item.mt-500"
-    class_div_each_spec = "zebra-row.flex.p-200.justify-content-between.body-copy-lg"
-    class_div_spec_type = "mr-100.inline"
-    class_div_spec_text = "w-full"
-
-    # Global Variables
-    next_page = None
-    links = []
-    products_data = []
-    main_headers = ["Link", "Name", "SKU", "Price", "Five Star", "Review Amount", "Image Link", 'Description', 'More Images Links', 'Videos Links'] 
-
     #----------------------------------------------------------------Functions-------------------------------------------------------------------------#
+
     def handle_survey():
         try:
             # If survey is noticed then click the no button, else, continue
@@ -122,7 +148,6 @@ def run(keywords:str)-> None:
     def scrape_page(driver):
         global links
         global next_page
-        
         handle_survey()    
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         print("Scrolled to bottom of the page.")
@@ -141,6 +166,10 @@ def run(keywords:str)-> None:
             except:
                 next_page = None
                 print("No next page found.")
+                #save list of last scraped items, for threads usage later 
+                df = pd.DataFrame(links, columns=['Product Links'])
+                df = df.drop_duplicates()
+                df.to_csv(real_links, index=False)
         except Exception as e:
             print("Error!! ", e)
 
@@ -459,16 +488,7 @@ def run(keywords:str)-> None:
         links.clear()
 
     #---------------------------------------------------------------------------Begining---------------------------------------------------------------------#
-    #Links - test and speed process
-    test_links = "statics/test_product_link_BB.csv"
-    real_links = "statics/product_link_BB.csv"
-    #Outputs
-    test_output_path = 'outputs/Best_Buy/test_product_data.csv'
-    real_output_path= 'outputs/Best_Buy/product_data.csv'
-    #other paths
-    old_file = 'statics/old_file.csv'
-    #Force run
-    no_file = "statics/no_file.csv"    
+    global products_data
     try:        
         driver.get(url)
         handle_survey()
@@ -524,12 +544,6 @@ def run(keywords:str)-> None:
         
     except Exception as e:
         print("Not able to run the code, error: ", e)
-
-    #save list of last scraped items, for threads usage later 
-    df = pd.DataFrame(links, columns=['Product Links'])
-    df = df.drop_duplicates()
-
-    df.to_csv(real_links, index=False)
 
     #for each link get product info
     process_products(driver)
