@@ -22,7 +22,10 @@ products_data = []
 filtered = False
 
 def run(keywords:str)->None:
-        
+    global links
+    global next_page
+    global products_data
+    global filtered
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
     user_agents = [
         # Add your list of user agents here
@@ -405,7 +408,7 @@ def run(keywords:str)->None:
 
         try:
             #If exists, run based on the links given
-            links = pd.read_csv(real_links)
+            links = pd.read_csv(no_file)
             links = links["Product Links"].to_list()
             
             #If no links in the file, execute the routine
