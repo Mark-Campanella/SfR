@@ -365,5 +365,6 @@ def run(keywords:str, country:str, need_change_location:str) -> None:
             case 'BR': df = cleanup_BR(df)
             case 'MX': print('not implemented yet')
             case 'India': print('not implemented yet')
+        df.to_csv('outputs/Amazon/product_data.csv', index=False)
     print(df.info)
-    df.to_csv('outputs/Amazon/product_data.csv', index=False)
+    df = pd.DataFrame()
