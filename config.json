@@ -1,0 +1,109 @@
+{
+ "version": "auto-py-to-exe-configuration_v1",
+ "pyinstallerOptions": [
+  {
+   "optionDest": "noconfirm",
+   "value": true
+  },
+  {
+   "optionDest": "filenames",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/interface.py"
+  },
+  {
+   "optionDest": "onefile",
+   "value": false
+  },
+  {
+   "optionDest": "console",
+   "value": false
+  },
+  {
+   "optionDest": "icon_file",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/statics/favicon.ico"
+  },
+  {
+   "optionDest": "name",
+   "value": "Scraper for Retailers"
+  },
+  {
+   "optionDest": "contents_directory",
+   "value": "Files"
+  },
+  {
+   "optionDest": "upx_dir",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers"
+  },
+  {
+   "optionDest": "clean_build",
+   "value": false
+  },
+  {
+   "optionDest": "strip",
+   "value": false
+  },
+  {
+   "optionDest": "noupx",
+   "value": false
+  },
+  {
+   "optionDest": "disable_windowed_traceback",
+   "value": false
+  },
+  {
+   "optionDest": "uac_admin",
+   "value": false
+  },
+  {
+   "optionDest": "uac_uiaccess",
+   "value": false
+  },
+  {
+   "optionDest": "argv_emulation",
+   "value": false
+  },
+  {
+   "optionDest": "bootloader_ignore_signals",
+   "value": false
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/outputs;outputs/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/scrapers;scrapers/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/statics;statics/"
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "selenium"
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "pandas"
+  },
+  {
+   "optionDest": "pathex",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/.venv/Lib/site-packages/selenium_stealth"
+  },
+  {
+   "optionDest": "pathex",
+   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/.venv/Lib/site-packages"
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "customtkinter"
+  },
+  {
+   "optionDest": "hiddenimports",
+   "value": "wakepy"
+  }
+ ],
+ "nonPyinstallerOptions": {
+  "increaseRecursionLimit": true,
+  "manualArguments": ""
+ }
+}

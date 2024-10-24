@@ -1,0 +1,14 @@
+1) ACTIVATE ENVIROMENT:
+	A) have powershell installed and running in the SfR directory
+	B) #.\.venv/Scripts/activate
+
+2) TYPE auto-py-to-exe
+
+3) GO TO THE BOTTOM, UPLOAD CONFIGURATION FILE IN THE SfR DIRECTORY (config.json)
+
+4) RUN
+
+5) GO TO THE OUTPUT FILE
+	A) go to the SfR .venv folder(directory)
+	B) go to the Lib folder, copy selenium-stealth folder to the SfR=>APP=>Scraper for Retailers=>Files
+	C) GET THE outputs, scrapers and statics FOLDERS OUT, IN THE SAME DIRECTORY THEN THE APPLICATION EXECUTABLE (Scraper for Retailers)
