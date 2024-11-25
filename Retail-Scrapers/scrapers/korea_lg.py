@@ -1,5 +1,3 @@
-import sys
-import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -8,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium_stealth import stealth
 import pandas as pd
 import random
+from urllib.parse import urljoin
 
 #-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
 url = "https://www.lge.co.kr/wash-tower?subCateId=CT50210002"
@@ -21,11 +20,11 @@ links = []
 products_data = []
 main_headers = ["Link", "Name", "SKU", "Price", "Five Star", "Review Amount", "Image Link", 'Description', 'More Images Links', 'Videos Links'] 
 #Links - test and speed process
-test_links = "statics/test_product_link_BB.csv"
-real_links = "statics/product_link_BB.csv"
+test_links = "statics/test_product_link_LG_ko.csv"
+real_links = "statics/product_link_LG_ko.csv"
 #Outputs
-test_output_path = 'outputs/Best_Buy/test_product_data.csv'
-real_output_path= 'outputs/Best_Buy/product_data.csv'
+test_output_path = 'outputs/LG_ko/test_product_data.csv'
+real_output_path= 'outputs/LG_ko/product_data.csv'
 #other paths
 old_file = 'statics/old_file.csv'
 #Force run
@@ -42,6 +41,8 @@ class_btn_more_images = 'thumbnail more'
 class_claims_placeholder = 'iw_placeholder'
 class_claim = 'iw_component'
 class_spec_container = 'prod-spec-detail'
+class_show_full_specs='btn_collapse_more' 
+class_div_prod_spec_detail="prod-spec-detail"
 
 
 def run()-> None:
@@ -83,15 +84,17 @@ def run()-> None:
     # disable extensions
     chrome_options.add_argument("--disable-extensions")
     #run in headless mode
-    chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
     # disable sandbox mode
-    chrome_options.add_argument('--no-sandbox')
+    # chrome_options.add_argument('--no-sandbox')
     # disable shared memory usage
     chrome_options.add_argument('--disable-dev-shm-usage')
     # rotate user agents 
     chrome_options.add_argument(f'user-agent={user_agent}')
 
     driver = webdriver.Chrome(options=chrome_options)
+    BASE_URL = "https://www.lge.co.kr/"
+
     # Change the property value of the navigator for webdriver to undefined
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     stealth(driver,
@@ -118,11 +121,11 @@ def run()-> None:
             print(f"Found {len(elems)} elements with class {class_items}.")
 
             tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
-            links.extend([tag.get_attribute("href") for tag in tags])
+            links.extend([tag.get_dom_attribute("href") for tag in tags])
             
             try:
                 next_page = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.XPATH, xpath_second_page))).get_attribute("href")
+                    EC.presence_of_element_located((By.XPATH, xpath_second_page)))
                 print(f"Found next page: {next_page}")
             except:
                 next_page = None
@@ -138,7 +141,12 @@ def run()-> None:
         global products_data, main_headers
         driver.get(link)
         driver.implicitly_wait(20)
-        
+        try:
+            WebDriverWait(driver,30).until(
+                EC.element_to_be_clickable((By.ID,'link-button-1454703450485'))
+            ).click()
+        except:
+            pass
         #----------------------------------------------------------------------------------------------------------------------------------------------------------------------GET LINK
         product_info = {'Link': link}
         #--------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT NAME
@@ -148,7 +156,7 @@ def run()-> None:
             )
             product_info['Name'] = product_name_element.text
         except Exception as e:
-            product_info['Name'] = "N/A"
+            product_info['Name'] = ""
             print("Error getting product name:", e)
         unwanteds = ["Package", "Stacking Kit", "sorry"]
         if any(unwanted in product_info['Name'] for unwanted in unwanteds):
@@ -161,16 +169,24 @@ def run()-> None:
             #TODO if sku in products_data already in the file, skip it
             product_info['SKU'] = product_sku_element.text
         except Exception as e:
-            product_info['SKU'] = "N/A"
+            product_info['SKU'] = ""
             print("Error getting product SKU:", e)
             
+        #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT FLAGS
+        try:
+            product_flags = driver.find_element(By.CLASS_NAME,'flag-wrap.bar-type').find_elements(By.CLASS_NAME,'flag')
+            product_flags_text = [flag_text.text for flag_text in product_flags]
+            product_info['Flags'] = product_flags_text
+        except Exception as e:
+            product_info['Flags'] = ""
+            print("Error fetching flags: ", e)            
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT IMAGE    
         try:
             product_image_link = WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_product_img))))
-            product_info['Image Link'] = product_image_link.get_attribute('src')
+            product_info['Image Link'] = product_image_link.get_dom_attribute('src')
         except Exception as e:
-            product_info['Image Link'] = "N/A"
+            product_info['Image Link'] = ""
             print("Error getting product SKU:", e)
 
         #----------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT 5-STAR REVIEWS       
@@ -181,7 +197,7 @@ def run()-> None:
             five_star = five_star_and_review_amount.split()[0]
             product_info['Five Star'] = five_star
         except Exception as e:
-            product_info['Five Star'] = "N/A"
+            product_info['Five Star'] = ""
             print("Error getting five star rating:", e)
             
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET REVIEW AMOUNT
@@ -189,7 +205,7 @@ def run()-> None:
             review_amount = five_star_and_review_amount.split()[1].replace('(','').replace(')','')
             product_info['Review Amount'] = review_amount
         except Exception as e:
-            product_info['Review Amount'] = "N/A"
+            product_info['Review Amount'] = ""
             print("Error getting review amount:", e)      
                 
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT PRICE
@@ -219,7 +235,7 @@ def run()-> None:
                     try:
                         for each_li in div_li_more_images:
                             try:
-                                images.append(each_li.find_element(By.TAG_NAME,'img').get_attribute('src'))
+                                images.append(each_li.find_element(By.TAG_NAME,'img').get_dom_attribute('src'))
                             except: pass
                         product_info['More Images Links 1'] = images  
                     except Exception as e: 
@@ -260,112 +276,119 @@ def run()-> None:
                 # Capture images
                 images_list = claim.find_elements(By.TAG_NAME, 'img')
                 if images_list:
-                    list_of_content.extend([image.get_attribute('src') for image in images_list])
+                    list_of_content.extend([urljoin(BASE_URL,image.get_dom_attribute('src')) or "" for image in images_list])
                 else:
                     print(f"No images found in claim {i}")
 
                 # Capture links
                 claim_links = claim.find_elements(By.TAG_NAME, 'a')
                 if claim_links:
-                    list_of_content.extend([link.get_attribute('href') for link in claim_links])
+                    list_of_content.extend([urljoin(BASE_URL,link.get_dom_attribute('href')) or "" for link in claim_links])
                 else:
                     print(f"No links found in claim {i}")
 
                 # Capture videos
                 videos_list = claim.find_elements(By.TAG_NAME, 'video')
                 if videos_list:
-                    list_of_content.extend([video.get_attribute('src') for video in videos_list])
+                    list_of_content.extend([urljoin(BASE_URL,video.get_dom_attribute('src')) or "" for video in videos_list])
                 else:
                     print(f"No videos found in claim {i}")
+                
+                    # Filter out None values
+                    list_of_content = [content for content in list_of_content if content]
+
 
                 # Save data in dictionary
                 if list_of_content:
-                    product_info[f'Claim item {i}'] = list_of_content
+                    product_info[f'Claim item {i}'] = '\n'.join(list_of_content) 
+                    print(f'Claim item {i}:{product_info[f"Claim item {i}"]}\n')
                 else:
                     print(f"Claim {i} has no content.")
+                    product_info[f'Claim item {i}'] = ""
 
         except Exception as e:
             print(f"An error occurred while processing claims: {e}")
 
             
         #--------------------------------------------------------------------------------------------------------------------------------------------------GET DESCRIPTION AND FEATURES        
-        try:
-            product_specs_container = driver.find_element(By.CLASS_NAME,class_spec_container)
-        except Exception as e:
-            print("Error trying to get features: ",e)
+        # try:
+        #     product_specs_container = driver.find_element(By.CLASS_NAME,class_spec_container)
+        # except Exception as e:
+        #     print("Error trying to get features: ",e)
             
-        #Get Energy guide
-        try:
-            energy_guide = driver.find_element(By.CLASS_NAME,'c-button-link.energy-guide-link.ml-150').get_attribute("href")
-            product_info['Energy Guide'] = energy_guide
-        except Exception as e:
-            product_info['Energy Guide'] = None
-            print("Error getting the energy guide, sorry, error: ",e)
+        # #Get Energy guide
+        # try:
+        #     energy_guide = driver.find_element(By.CLASS_NAME,'c-button-link.energy-guide-link.ml-150').get_dom_attribute("href")
+        #     product_info['Energy Guide'] = energy_guide
+        # except Exception as e:
+        #     product_info['Energy Guide'] = None
+        #     print("Error getting the energy guide, sorry, error: ",e)
 
-        #Get Manual and Specsheet
-        try:
-            documents = driver.find_elements(By.CLASS_NAME,'manual-link.body-copy-lg')
-            doc1 = documents[0].get_attribute('href')
-            doc2 = documents[1].get_attribute('href')
+        # #Get Manual and Specsheet
+        # try:
+        #     documents = driver.find_elements(By.CLASS_NAME,'manual-link.body-copy-lg')
+        #     doc1 = documents[0].get_dom_attribute('href')
+        #     doc2 = documents[1].get_dom_attribute('href')
             
-            if 'user' in doc1.lower() or 'owners' in doc1.lower() or 'specs' in doc2.lower():
-                product_info['User Manual'] = doc1
-                product_info['Spec Sheet'] = doc2
-            else:
-                product_info['Spec Sheet'] = doc1
-                product_info['User Manual'] = doc2
-        except: 
-            print("Error getting the manual, maybe it doesn't exist here? I will try something else...")
-            try:
-                doc = driver.find_element(By.CLASS_NAME,'manual-link.body-copy-lg').get_attribute('href')
-                if 'User' in doc:
-                    product_info['User Manual'] = doc
-                else:
-                    product_info['Spec Sheet'] = doc
-            except Exception as e:
-                product_info['Document 1'] = None
-                print("Nope, could not find a document, sorry...\n",e)
+        #     if 'user' in doc1.lower() or 'owners' in doc1.lower() or 'specs' in doc2.lower():
+        #         product_info['User Manual'] = doc1
+        #         product_info['Spec Sheet'] = doc2
+        #     else:
+        #         product_info['Spec Sheet'] = doc1
+        #         product_info['User Manual'] = doc2
+        # except: 
+        #     print("Error getting the manual, maybe it doesn't exist here? I will try something else...")
+        #     try:
+        #         doc = driver.find_element(By.CLASS_NAME,'manual-link.body-copy-lg').get_dom_attribute('href')
+        #         if 'User' in doc:
+        #             product_info['User Manual'] = doc
+        #         else:
+        #             product_info['Spec Sheet'] = doc
+        #     except Exception as e:
+        #         product_info['Document 1'] = None
+        #         print("Nope, could not find a document, sorry...\n",e)
             
-        finally:
-            try:
-                # Attempt to close any modal that might be open
-                close_icon = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, 'c-close-icon'))
-                )
-                close_icon.click()
-            except Exception as e:
-                print("No close icon found, refreshing page:", e)
-                driver.refresh()
+        # finally:
+        #     try:
+        #         # Attempt to close any modal that might be open
+        #         close_icon = WebDriverWait(driver, 10).until(
+        #             EC.element_to_be_clickable((By.CLASS_NAME, 'c-close-icon'))
+        #         )
+        #         close_icon.click()
+        #     except Exception as e:
+        #         print("No close icon found, refreshing page:", e)
+        #         driver.refresh()
                 
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
-            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
+            show_full_specs_btn = WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, item_adjust(class_show_full_specs))))
+            driver.execute_script("arguments[0].scrollIntoView();", show_full_specs_btn)
+            show_full_specs_btn.click()
         except Exception as e:
             print("Couldn't click show full specs button:", e)
+
         
         try:
-            list_of_specs_ul = WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, class_ul_item_specs))
-            )
+            product_specs = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_div_prod_spec_detail)))
+            ).find_elements(By.CLASS_NAME,'box')
 
-            for each_item in list_of_specs_ul:
-                try:
-                    spec_items = each_item.find_elements(By.CLASS_NAME, class_div_each_spec)
-                    for spec_item in spec_items:
-                        header = spec_item.find_element(By.CLASS_NAME, class_div_spec_type).text
-                        #I could not find a way of getting the spec text with CSS Classes
-                        #Then I could fetch by XPATH on a generic mode
-                        spec = spec_item.find_element(By.XPATH, ".//div[contains(@class, 'w-full') and not(contains(@class, 'mr-200'))]").text
+            for box in product_specs:
+                # Directly iterate over li elements in each box
+                for spec_item in box.find_elements(By.TAG_NAME, 'li'):
+                    try:
+                        header = spec_item.find_element(By.TAG_NAME, 'dt').text
+                        spec = spec_item.find_element(By.TAG_NAME, "dd").text
                         product_info[header] = spec
+
                         if header not in main_headers:
                             main_headers.append(header)
-                            
-                except Exception as e:
-                    print(f"Error extracting specification: {e}")
-                    continue
-                
+                    except Exception as e:
+                        print(f"Error extracting specification: {e}")
+
         except Exception as e:
             print(f"Error occurred while getting specifications: {e}")
+
             
         print(f'COMPLETE SPEC ADDED:{product_info}\n')
         products_data.append(product_info)
@@ -378,9 +401,14 @@ def run()-> None:
         
         global links
         links = pd.Series(links).drop_duplicates().tolist()
-        for link in links: 
-            process_product(driver, link)
-            print(f'Processing: {links.index(link)+1}/{len(links)}')
+        for idx,link in enumerate(links,start=1): 
+            try:
+                print(link)
+                process_product(driver, urljoin(BASE_URL,link))
+                print(f"Processing {idx}/{len(links)}: {urljoin(BASE_URL,link)}")
+            except Exception as e:
+                print(f"Error getting into link:{link}\nReason: {e}")
+                continue
         links.clear()
 
     #---------------------------------------------------------------------------Begining---------------------------------------------------------------------#
@@ -388,18 +416,24 @@ def run()-> None:
     try:        
         driver.get(url)
         driver.implicitly_wait(20)  # Wait for it to load
+        try:
+            WebDriverWait(driver,30).until(
+                EC.element_to_be_clickable((By.ID,'link-button-1454703450485'))
+            ).click()
+        except:
+            pass
         print("Page loaded.")
-        search = WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.CLASS_NAME, class_search_bar)))
-        search.send_keys(search_for)
+        # search = WebDriverWait(driver, 30).until(
+        #     EC.presence_of_element_located((By.CLASS_NAME, class_search_bar)))
+        # search.send_keys(search_for)
         
-        time.sleep(2)
+        # time.sleep(2)
         
-        button = WebDriverWait(driver, 30).until(
-            EC.element_to_be_clickable((By.CLASS_NAME, class_search_button)))
-        button.click()
+        # button = WebDriverWait(driver, 30).until(
+        #     EC.element_to_be_clickable((By.CLASS_NAME, class_search_button)))
+        # button.click()
         
-        driver.implicitly_wait(20)  # Wait for it to load
+        # driver.implicitly_wait(20)  # Wait for it to load
 
         '''
         This section is useful for test purposes
@@ -418,7 +452,7 @@ def run()-> None:
                     scrape_page(driver)
                     if next_page: 
                         i+=1
-                        driver.get(next_page)
+                        next_page.click()
                         print(f"Navigating to next page: {next_page}: {i}")
                     else: 
                         break
@@ -430,7 +464,7 @@ def run()-> None:
                 scrape_page(driver)
                 if next_page: 
                     i+=1
-                    driver.get(next_page)
+                    next_page.click()
                     print(f"Navigating to next page: {next_page}: {i}")
                 else: 
                     break
@@ -456,3 +490,5 @@ def run()-> None:
     df.to_csv(real_output_path, index=False)
     
     print(df.info())
+    
+run() 
