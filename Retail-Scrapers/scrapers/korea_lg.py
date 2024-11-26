@@ -8,6 +8,10 @@ import pandas as pd
 import random
 from urllib.parse import urljoin
 
+
+#TODO It is not getting specifications, nor it is gathering video links alright
+
+
 #-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
 url = "https://www.lge.co.kr/wash-tower?subCateId=CT50210002"
 
@@ -115,27 +119,34 @@ def run()-> None:
         global next_page
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         print("Scrolled to bottom of the page.")
-        try:
-            elems = WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items))))
-            print(f"Found {len(elems)} elements with class {class_items}.")
+        seen_links = set()
 
-            tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
-            links.extend([tag.get_dom_attribute("href") for tag in tags])
-            
+        while True:
             try:
-                next_page = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.XPATH, xpath_second_page)))
-                print(f"Found next page: {next_page}")
-            except:
-                next_page = None
-                print("No next page found.")
-                #save list of last scraped items, for threads usage later 
-                df = pd.DataFrame(links, columns=['Product Links'])
-                df = df.drop_duplicates()
-                df.to_csv(real_links, index=False)
-        except Exception as e:
-            print("Error!! ", e)
+                elems = WebDriverWait(driver, 30).until(
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items))))
+                print(f"Found {len(elems)} elements with class {class_items}.")
+
+                tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
+                new_links = [tag.get_dom_attribute("href") for tag in tags if tag.get_dom_attribute("href")]
+                seen_links.update(new_links)
+                print(f"Captured {len(new_links)} links from the current page.")
+
+                # Navegar para a próxima página
+                next_page = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, xpath_second_page)))
+                next_page.click()
+                print("Navigating to next page...")
+
+            except Exception as e:
+                print(f"Stopped on navigation: {e}")
+                break
+
+        # Salvar todos os links únicos no CSV
+        links = list(seen_links)
+        print(f"Total unique links saved: {len(links)}")
+        df = pd.DataFrame(links, columns=['Product Links'])
+        df.to_csv(real_links, index=False)
 
     def process_product(driver, link):
         global products_data, main_headers
@@ -255,53 +266,119 @@ def run()-> None:
             driver.find_element(By.CLASS_NAME,'btn-close.ui_modal_close').click()
         except Exception as e:
             print("Could not close MODAL IMAGES because of: \n\t", e)
-            driver.refresh()        
+            driver.refresh()     
+            
+        #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
+        try:
+            # Aguarda o botão estar presente e clicável
+            show_full_specs_btn = WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="specTab1"]/div/div[1]/div[3]/a[1]'))
+            )
+            
+            # Rola até o botão para garantir visibilidade
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", show_full_specs_btn)
+            print("Scrolled into view.")
+            
+            # Tenta clicar no botão usando JavaScript ou Selenium
+            try:
+                # Primeiro, tenta clicar diretamente
+                show_full_specs_btn.click()
+                print("Clicked using Selenium.")
+            except Exception as e:
+                # Se o clique direto falhar, tenta com JavaScript
+                driver.execute_script("arguments[0].click();", show_full_specs_btn)
+                print("Clicked using JavaScript fallback.")
+        except Exception as e:
+            print("Couldn't click 'show full specs' button:", e)
+
+        try:
+            product_specs = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_div_prod_spec_detail)))
+            ).find_elements(By.CLASS_NAME,'box')
+
+            for box in product_specs:
+                # Directly iterate over li elements in each box
+                for spec_item in box.find_elements(By.TAG_NAME, 'li'):
+                    try:
+                        header = spec_item.find_element(By.TAG_NAME, 'dt').text
+                        spec = spec_item.find_element(By.TAG_NAME, "dd").text
+                        product_info[header] = spec
+
+                        if header not in main_headers:
+                            main_headers.append(header)
+                    except Exception as e:
+                        print(f"Error extracting specification: {e}")
+
+        except Exception as e:
+            print(f"Error occurred while getting specifications: {e}")
 
             
+        print(f'COMPLETE SPEC ADDED:{product_info}\n')
+        products_data.append(product_info)   
+
         #------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT CLAIMS
         try:
-            claims_placeholder = driver.find_element(By.CLASS_NAME, item_adjust(class_claims_placeholder))
-            claim_list = claims_placeholder.find_elements(By.CLASS_NAME, item_adjust(class_claim))
+            claims_placeholder = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_claims_placeholder)))
+            )
+            claim_list = WebDriverWait(claims_placeholder, 10).until(
+                lambda placeholder: placeholder.find_elements(By.CLASS_NAME, item_adjust(class_claim))
+            )
             
             for i, claim in enumerate(claim_list, start=1):  # Enumerate os claims
                 list_of_content = []
 
-                # Capture text
+                # Capturar texto
                 texts = claim.text.strip()
                 if texts:
                     list_of_content.append(texts)
                 else:
                     print(f"No text found in claim {i}")
 
-                # Capture images
-                images_list = claim.find_elements(By.TAG_NAME, 'img')
-                if images_list:
-                    list_of_content.extend([urljoin(BASE_URL,image.get_dom_attribute('src')) or "" for image in images_list])
-                else:
-                    print(f"No images found in claim {i}")
+                # Capturar imagens (espera explícita)
+                try:
+                    images_list = WebDriverWait(claim, 10).until(
+                        lambda claim: claim.find_elements(By.TAG_NAME, 'img')
+                    )
+                    for image in images_list:
+                        src = image.get_dom_attribute('src') or image.get_dom_attribute('data-src')
+                        if src:
+                            list_of_content.append(urljoin(BASE_URL, src))
+                        else:
+                            print(f"Image with no valid 'src' or 'data-src' in claim {i}")
+                except Exception as e:
+                    print(f"Error loading images in claim {i}: {e}")
 
-                # Capture links
+                # Capturar vídeos (espera explícita)
+                try:
+                    videos_list = WebDriverWait(claim, 10).until(
+                        lambda claim: claim.find_elements(By.TAG_NAME, 'video')
+                    )
+                    for video in videos_list:
+                        src = video.get_dom_attribute('src')
+                        if src:
+                            list_of_content.append(urljoin(BASE_URL, src))
+                        else:
+                            print(f"Video with no 'src' in claim {i}")
+                except Exception as e:
+                    print(f"Error loading videos in claim {i}: {e}")
+
+                # Capturar links (sem espera explícita, mas verificando conteúdo)
                 claim_links = claim.find_elements(By.TAG_NAME, 'a')
                 if claim_links:
-                    list_of_content.extend([urljoin(BASE_URL,link.get_dom_attribute('href')) or "" for link in claim_links])
+                    list_of_content.extend([
+                        urljoin(BASE_URL, link.get_dom_attribute('href')) or "" for link in claim_links
+                    ])
                 else:
                     print(f"No links found in claim {i}")
 
-                # Capture videos
-                videos_list = claim.find_elements(By.TAG_NAME, 'video')
-                if videos_list:
-                    list_of_content.extend([urljoin(BASE_URL,video.get_dom_attribute('src')) or "" for video in videos_list])
-                else:
-                    print(f"No videos found in claim {i}")
-                
-                    # Filter out None values
-                    list_of_content = [content for content in list_of_content if content]
+                # Remover valores vazios ou `None`
+                list_of_content = [content for content in list_of_content if content]
 
-
-                # Save data in dictionary
+                # Salvar dados no dicionário
                 if list_of_content:
-                    product_info[f'Claim item {i}'] = '\n'.join(list_of_content) 
-                    print(f'Claim item {i}:{product_info[f"Claim item {i}"]}\n')
+                    product_info[f'Claim item {i}'] = '\n'.join(list_of_content)
+                    print(f'Claim item {i}: {product_info[f"Claim item {i}"]}\n')
                 else:
                     print(f"Claim {i} has no content.")
                     product_info[f'Claim item {i}'] = ""
@@ -359,39 +436,6 @@ def run()-> None:
         #         print("No close icon found, refreshing page:", e)
         #         driver.refresh()
                 
-        #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
-        try:
-            show_full_specs_btn = WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, item_adjust(class_show_full_specs))))
-            driver.execute_script("arguments[0].scrollIntoView();", show_full_specs_btn)
-            show_full_specs_btn.click()
-        except Exception as e:
-            print("Couldn't click show full specs button:", e)
-
-        
-        try:
-            product_specs = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_div_prod_spec_detail)))
-            ).find_elements(By.CLASS_NAME,'box')
-
-            for box in product_specs:
-                # Directly iterate over li elements in each box
-                for spec_item in box.find_elements(By.TAG_NAME, 'li'):
-                    try:
-                        header = spec_item.find_element(By.TAG_NAME, 'dt').text
-                        spec = spec_item.find_element(By.TAG_NAME, "dd").text
-                        product_info[header] = spec
-
-                        if header not in main_headers:
-                            main_headers.append(header)
-                    except Exception as e:
-                        print(f"Error extracting specification: {e}")
-
-        except Exception as e:
-            print(f"Error occurred while getting specifications: {e}")
-
-            
-        print(f'COMPLETE SPEC ADDED:{product_info}\n')
-        products_data.append(product_info)
 
     def process_products(driver):
         '''
@@ -446,28 +490,10 @@ def run()-> None:
             
             #If no links in the file, execute the routine
             if links == None:
-                i=1
-                while True:
-                    print("Scraping page: ",i)
-                    scrape_page(driver)
-                    if next_page: 
-                        i+=1
-                        next_page.click()
-                        print(f"Navigating to next page: {next_page}: {i}")
-                    else: 
-                        break
+                scrape_page(driver)
         #If file doesn't exist, run routine to get it and save it later
         except:
-            i=1
-            while True:
-                print("Scraping page: ",i)
-                scrape_page(driver)
-                if next_page: 
-                    i+=1
-                    next_page.click()
-                    print(f"Navigating to next page: {next_page}: {i}")
-                else: 
-                    break
+            scrape_page(driver)
         
     except Exception as e:
         print("Not able to run the code, error: ", e)
