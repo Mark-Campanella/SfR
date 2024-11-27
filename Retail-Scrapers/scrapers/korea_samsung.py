@@ -10,11 +10,9 @@ import random
 from urllib.parse import urljoin
 
 
-#TODO It is not getting specifications, nor it is gathering video links alright
-
 
 #-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
-url = "https://www.lge.co.kr/wash-tower?subCateId=CT50210002"
+url = "https://www.samsung.com/sec/washing-machines/all-washing-machines/?bespoke-grande-ai-onebody"
 
 
 #-----------------------------------------------------Do Not Modify if no changes are required------------------------------------------------------#
@@ -35,15 +33,19 @@ old_file = 'statics/old_file.csv'
 #Force run
 no_file = "statics/no_file.csv"
 
+class_list_items = "list-product"
 
-class_items = "top-title-main"
-xpath_second_page = '//*[@id="_plpComponent"]/section/section[3]/section[2]/div/div[4]/span/a'
-class_product_sku = 'sku copy'
-class_product_img = 'pdp-visual-image is-active'
-class_product_5_star = 'star-rating-wrap'
-class_product_price = 'price-detail-item type-small-dept'
-class_btn_more_images = 'thumbnail more'
-class_claims_placeholder = 'iw_placeholder'
+class_product_sku = 'itm-sku b2c-itm-sku compare-box-align'
+class_product_img = 'view-image-box slick-slide slick-current slick-active'
+class_product_5_star = 'itm-rating b2c-itm-rating' # > find txt > split > 1 is 5star next is review amount
+class_product_price = 'itm-price itm-type' # > find 1st span in it 
+class_btn_more_images = 'prod-image-navi-wrap' # > find img > src
+
+
+#TODO finish mapping items // initiate logic
+class_claims_placeholder_1 = 'wrap-component feature-benefit new-component pt-none pb-none w1440px img-bottom'
+class_claims_placeholder_2 = 'wrap-component textbox-simple new-component pt-none pb-none w1440px'
+
 class_claim = 'iw_component'
 class_spec_container = 'prod-spec-detail'
 class_show_full_specs='btn_collapse_more' 
@@ -98,7 +100,7 @@ def run()-> None:
     chrome_options.add_argument(f'user-agent={user_agent}')
 
     driver = webdriver.Chrome(options=chrome_options)
-    BASE_URL = "https://www.lge.co.kr/"
+    BASE_URL = "https://www.samsung.com/"
 
     # Change the property value of the navigator for webdriver to undefined
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
@@ -126,9 +128,9 @@ def run()-> None:
         def get_items():
             # Encontrar todos os elementos da página
             elems = WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items)))
+                EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_list_items)))
             )
-            print(f"Found {len(elems)} elements with class {class_items}.")
+            print(f"Found {len(elems)} elements with class {class_list_items}.")
 
             # Obter os links dos elementos encontrados
             tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
@@ -141,20 +143,8 @@ def run()-> None:
         # Navegar para a próxima página
         try:
             get_items()
-            next_page = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, xpath_second_page))
-            )
-            next_page.click()
-            print("Navigating to next page...")
-            # Pausar brevemente para permitir o carregamento da página
-            WebDriverWait(driver, 10).until(
-                EC.staleness_of(
-                    WebDriverWait(driver, 30).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_items)))
-            )))
-            get_items()
         except Exception as e:
-            print("No next page or error navigating:", e)
+            print("Failed to capture items!:", e)
 
         # Atualizar a lista global de links
         links = list(seen_links)
@@ -169,12 +159,7 @@ def run()-> None:
         global products_data, main_headers
         driver.get(link)
         driver.implicitly_wait(20)
-        try:
-            WebDriverWait(driver,30).until(
-                EC.element_to_be_clickable((By.ID,'link-button-1454703450485'))
-            ).click()
-        except:
-            pass
+
         #----------------------------------------------------------------------------------------------------------------------------------------------------------------------GET LINK
         product_info = {'Link': link}
         #--------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT NAME
@@ -186,7 +171,7 @@ def run()-> None:
         except Exception as e:
             product_info['Name'] = ""
             print("Error getting product name:", e)
-        unwanteds = ["Package", "Stacking Kit", "sorry"]
+        unwanteds = ["+"]
         if any(unwanted in product_info['Name'] for unwanted in unwanteds):
             return    
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT SKU
