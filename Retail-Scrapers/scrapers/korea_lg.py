@@ -117,36 +117,58 @@ def run()-> None:
     def scrape_page(driver):
         global links
         global next_page
+
+        # Inicializar o conjunto de links globais se necessário
+        if links is None:
+            links = []
+
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         print("Scrolled to bottom of the page.")
-        seen_links = set()
+        
+        seen_links = set(links)  # Inicializar com os links já existentes (evitar duplicatas)
 
         while True:
             try:
+                # Encontrar todos os elementos da página
                 elems = WebDriverWait(driver, 30).until(
-                    EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items))))
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items)))
+                )
                 print(f"Found {len(elems)} elements with class {class_items}.")
 
+                # Obter os links dos elementos encontrados
                 tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
                 new_links = [tag.get_dom_attribute("href") for tag in tags if tag.get_dom_attribute("href")]
-                seen_links.update(new_links)
-                print(f"Captured {len(new_links)} links from the current page.")
+                new_links = [link for link in new_links if link not in seen_links]  # Filtrar links duplicados
 
+                # Adicionar os links novos ao conjunto
+                seen_links.update(new_links)
+                print(f"Captured {len(new_links)} new links from the current page.")
+                
                 # Navegar para a próxima página
-                next_page = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, xpath_second_page)))
-                next_page.click()
-                print("Navigating to next page...")
+                try:
+                    next_page = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, xpath_second_page))
+                    )
+                    next_page.click()
+                    print("Navigating to next page...")
+                    # Pausar brevemente para permitir o carregamento da página
+                    WebDriverWait(driver, 10).until(EC.staleness_of(elems[0]))
+                except Exception as e:
+                    print("No next page or error navigating:", e)
+                    break
 
             except Exception as e:
                 print(f"Stopped on navigation: {e}")
                 break
 
-        # Salvar todos os links únicos no CSV
+        # Atualizar a lista global de links
         links = list(seen_links)
         print(f"Total unique links saved: {len(links)}")
+        
+        # Salvar os links no CSV
         df = pd.DataFrame(links, columns=['Product Links'])
         df.to_csv(real_links, index=False)
+
 
     def process_product(driver, link):
         global products_data, main_headers
