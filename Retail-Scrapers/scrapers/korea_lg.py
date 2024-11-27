@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium_stealth import stealth
 import pandas as pd
 import random
@@ -126,40 +127,34 @@ def run()-> None:
         print("Scrolled to bottom of the page.")
         
         seen_links = set(links)  # Inicializar com os links já existentes (evitar duplicatas)
+        def get_items():
+            # Encontrar todos os elementos da página
+            elems = WebDriverWait(driver, 30).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items)))
+            )
+            print(f"Found {len(elems)} elements with class {class_items}.")
 
-        while True:
+            # Obter os links dos elementos encontrados
+            tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
+            new_links = [tag.get_dom_attribute("href") for tag in tags if tag.get_dom_attribute("href")]
+            new_links = [link for link in new_links if link not in seen_links]  # Filtrar links duplicados
+
+            # Adicionar os links novos ao conjunto
+            seen_links.update(new_links)
+            print(f"Captured {len(new_links)} new links from the current page.")
+            # Navegar para a próxima página
             try:
-                # Encontrar todos os elementos da página
-                elems = WebDriverWait(driver, 30).until(
-                    EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_items)))
+                get_items()
+                next_page = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, xpath_second_page))
                 )
-                print(f"Found {len(elems)} elements with class {class_items}.")
-
-                # Obter os links dos elementos encontrados
-                tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
-                new_links = [tag.get_dom_attribute("href") for tag in tags if tag.get_dom_attribute("href")]
-                new_links = [link for link in new_links if link not in seen_links]  # Filtrar links duplicados
-
-                # Adicionar os links novos ao conjunto
-                seen_links.update(new_links)
-                print(f"Captured {len(new_links)} new links from the current page.")
-                
-                # Navegar para a próxima página
-                try:
-                    next_page = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.XPATH, xpath_second_page))
-                    )
-                    next_page.click()
-                    print("Navigating to next page...")
-                    # Pausar brevemente para permitir o carregamento da página
-                    WebDriverWait(driver, 10).until(EC.staleness_of(elems[0]))
-                except Exception as e:
-                    print("No next page or error navigating:", e)
-                    break
-
+                next_page.click()
+                print("Navigating to next page...")
+                # Pausar brevemente para permitir o carregamento da página
+                WebDriverWait(driver, 10).until(EC.staleness_of(elems[0]))
+                get_items()
             except Exception as e:
-                print(f"Stopped on navigation: {e}")
-                break
+                print("No next page or error navigating:", e)
 
         # Atualizar a lista global de links
         links = list(seen_links)
