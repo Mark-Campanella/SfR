@@ -119,10 +119,6 @@ def run()-> None:
         global links
         global next_page
 
-        # Inicializar o conjunto de links globais se necessário
-        if links is None:
-            links = []
-
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         print("Scrolled to bottom of the page.")
         
@@ -142,19 +138,19 @@ def run()-> None:
             # Adicionar os links novos ao conjunto
             seen_links.update(new_links)
             print(f"Captured {len(new_links)} new links from the current page.")
-            # Navegar para a próxima página
-            try:
-                get_items()
-                next_page = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, xpath_second_page))
-                )
-                next_page.click()
-                print("Navigating to next page...")
-                # Pausar brevemente para permitir o carregamento da página
-                WebDriverWait(driver, 10).until(EC.staleness_of(elems[0]))
-                get_items()
-            except Exception as e:
-                print("No next page or error navigating:", e)
+        # Navegar para a próxima página
+        try:
+            get_items()
+            next_page = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, xpath_second_page))
+            )
+            next_page.click()
+            print("Navigating to next page...")
+            # Pausar brevemente para permitir o carregamento da página
+            WebDriverWait(driver, 10).until(EC.staleness_of(elems[0]))
+            get_items()
+        except Exception as e:
+            print("No next page or error navigating:", e)
 
         # Atualizar a lista global de links
         links = list(seen_links)
