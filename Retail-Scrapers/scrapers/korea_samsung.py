@@ -8,6 +8,7 @@ from selenium_stealth import stealth
 import pandas as pd
 import random
 from urllib.parse import urljoin
+from wakepy import modes
 
 
 
@@ -37,19 +38,18 @@ class_list_items = "list-product"
 
 class_product_sku = 'itm-sku b2c-itm-sku compare-box-align'
 class_product_img = 'view-image-box slick-slide slick-current slick-active'
-class_product_5_star = 'itm-rating b2c-itm-rating' # > find txt > split > 1 is 5star next is review amount
-class_product_price = 'itm-price itm-type' # > find 1st span in it 
-class_btn_more_images = 'prod-image-navi-wrap' # > find img > src
+class_product_5_star = 'itm-rating b2c-itm-rating'
+class_product_price = 'itm-price itm-type'
+class_more_images_div = 'prod-image-navi-wrap' # > find img > src
 
-
-#TODO finish mapping items // initiate logic
+class_claim_div = 'heightWrap'
 class_claims_placeholder_1 = 'wrap-component feature-benefit new-component pt-none pb-none w1440px img-bottom'
 class_claims_placeholder_2 = 'wrap-component textbox-simple new-component pt-none pb-none w1440px'
 
-class_claim = 'iw_component'
-class_spec_container = 'prod-spec-detail'
-class_show_full_specs='btn_collapse_more' 
-class_div_prod_spec_detail="prod-spec-detail"
+class_spec_container = 'component-con spec-all drop-component component03'
+class_show_full_specs='dropButton' 
+class_div_prod_spec_table="spec-table" # select <ol> > select <li>s > select texts> for li in lis {title: li.texts[0], content: li.texts[1]}
+
 
 
 def run()-> None:
@@ -187,9 +187,9 @@ def run()-> None:
             
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT FLAGS
         try:
-            product_flags = driver.find_element(By.CLASS_NAME,'flag-wrap.bar-type').find_elements(By.CLASS_NAME,'flag')
+            product_flags = driver.find_elements(By.CLASS_NAME,'itm-flag')
             product_flags_text = [flag_text.text for flag_text in product_flags]
-            product_info['Flags'] = product_flags_text
+            product_info['Flags'] = "\n".join(product_flags_text)
         except Exception as e:
             product_info['Flags'] = ""
             print("Error fetching flags: ", e)            
@@ -197,7 +197,7 @@ def run()-> None:
         try:
             product_image_link = WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_product_img))))
-            product_info['Image Link'] = product_image_link.get_dom_attribute('src')
+            product_info['Image Link'] = f"https{product_image_link.get_dom_attribute('src')}"
         except Exception as e:
             product_info['Image Link'] = ""
             print("Error getting product SKU:", e)
@@ -223,59 +223,35 @@ def run()-> None:
                 
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT PRICE
         try:
-           product_info['Price'] = driver.find_element(By.CLASS_NAME, item_adjust(class_product_price)).text
+            price_section = (driver.find_element(By.CLASS_NAME, item_adjust(class_product_price)))
+            price = price_section.find_element(By.TAG_NAME,"span").text
+            product_info['Price'] = price
         except Exception as e:
-            #If fails, get promocional price
-            try:
-                product_info['Price'] = driver.find_element(By.CLASS_NAME,item_adjust("price"))
-            except Exception as e_text:
-                print("Couldn't get the price because ", e_text)
-                product_info['Price'] = ""            
+            product_info['Price'] = ""
         #--------------------------------------------------------------------------------------------------------------------------------------------------------GET MORE PRODUCT IMAGE
         
         images = []
         try:
-            btn_more_images = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.CLASS_NAME, item_adjust(class_btn_more_images))))
-            btn_more_images.find_element(By.TAG_NAME,'a').click()
+            div_more_images = driver.find_element(By.CLASS_NAME,item_adjust(class_more_images_div))
             try:
-                div_ul_more_images = driver.find_element(By.CLASS_NAME,'pop-thumbnail-list')
-                try:
-                    div_li_more_images = (div_ul_more_images.find_elements(By.CLASS_NAME,'pop-thumbnail') + 
-                                          div_ul_more_images.find_elements(By.CLASS_NAME,'pop-thumbnail.on') +
-                                          div_ul_more_images.find_elements(By.CLASS_NAME,'pop-thumbnail.active')
-                                          )
-                    try:
-                        for each_li in div_li_more_images:
-                            try:
-                                images.append(each_li.find_element(By.TAG_NAME,'img').get_dom_attribute('src'))
-                            except: pass
-                        product_info['More Images Links 1'] = images  
-                    except Exception as e: 
-                        product_info['More Images Links 1'] = "N/A"
-                        print("Error getting More Images could not get the images", e)
-                except Exception as e:
-                    product_info['More Images Links 1'] = "N/A"
-                    print("Error getting More Images could not get the items list <li>", e)    
-            except Exception as e:       
-                product_info['More Images Links 1'] = "N/A"
-                print("Error getting More Images could not get the <ul>", e) 
-        except Exception as e: 
-            product_info['More Images Links 1'] = "N/A"
-            print("Error getting More Images, could not click in the more images button", e)
-        
-        try:
-            driver.find_element(By.CLASS_NAME,'btn-close.ui_modal_close').click()
-        except Exception as e:
-            print("Could not close MODAL IMAGES because of: \n\t", e)
-            driver.refresh()     
-            
+                images = div_more_images.find_elements(By.TAG_NAME,'img').get_dom_attribute("src")
+                images_adjusted = list(map(lambda x : "https"+x, images))
+                images_adjusted = "\n".join(images)
+                product_info['More Images Links'] = images_adjusted
+            except Exception as e: 
+                product_info['More Images Links'] = "N/A"
+                print("Error getting More Images could not get the images", e)
+        except Exception as e:       
+            product_info['More Images Links'] = "N/A"
+            print("Error getting More Images could not get <div>", e)   
+           
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
             # Aguarda o botão estar presente e clicável
-            show_full_specs_btn = WebDriverWait(driver, 30).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="specTab1"]/div/div[1]/div[3]/a[1]'))
-            )
+            spec_container = WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((By.CLASS_NAME, item_adjust(class_spec_container)))
+                            )
+            show_full_specs_btn = spec_container.find_element(By.CLASS_NAME,item_adjust(class_show_full_specs))
             
             # Rola até o botão para garantir visibilidade
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", show_full_specs_btn)
@@ -293,17 +269,21 @@ def run()-> None:
         except Exception as e:
             print("Couldn't click 'show full specs' button:", e)
 
-        try:
-            product_specs = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_div_prod_spec_detail)))
-            ).find_elements(By.CLASS_NAME,'box')
+#class_div_prod_spec_table="spec-table" # select <ol> > select <li>s > tah> for li in lis {title: li.texts[0], content: li.texts[1]}
 
-            for box in product_specs:
-                # Directly iterate over li elements in each box
-                for spec_item in box.find_elements(By.TAG_NAME, 'li'):
+        try:
+            product_specs = WebDriverWait(spec_container, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_div_prod_spec_table)))
+            ).find_elements(By.TAG_NAME,'ol')
+
+            for ol in product_specs:
+                for spec_item in ol.find_elements(By.TAG_NAME, 'li'):
                     try:
-                        header = spec_item.find_element(By.TAG_NAME, 'dt').text
-                        spec = spec_item.find_element(By.TAG_NAME, "dd").text
+                        try:
+                            header = spec_item.find_element(By.TAG_NAME, 'button').text
+                        except:
+                            header = spec_item.find_element(By.TAG_NAME,"strong").text
+                        spec = spec_item.find_element(By.TAG_NAME, "text").text
                         product_info[header] = spec
 
                         if header not in main_headers:
