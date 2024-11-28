@@ -3,13 +3,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium_stealth import stealth
 import pandas as pd
 import random
 from urllib.parse import urljoin
-from wakepy import modes
+import wakepy
 
+mode = wakepy.keep.presenting()
 
 
 #-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
@@ -24,17 +26,17 @@ links = []
 products_data = []
 main_headers = ["Link", "Name", "SKU", "Price", "Five Star", "Review Amount", "Image Link", 'Description', 'More Images Links', 'Videos Links'] 
 #Links - test and speed process
-test_links = "statics/test_product_link_LG_ko.csv"
-real_links = "statics/product_link_LG_ko.csv"
+test_links = "statics/test_product_link_samsung_ko.csv"
+real_links = "statics/product_link_samsung_ko.csv"
 #Outputs
-test_output_path = 'outputs/LG_ko/test_product_data.csv'
-real_output_path= 'outputs/LG_ko/product_data.csv'
+test_output_path = 'outputs/samsung_ko/test_product_data.csv'
+real_output_path= 'outputs/samsung_ko/product_data.csv'
 #other paths
 old_file = 'statics/old_file.csv'
 #Force run
 no_file = "statics/no_file.csv"
 
-class_list_items = "list-product"
+class_list_items = "list list-type"
 
 class_product_sku = 'itm-sku b2c-itm-sku compare-box-align'
 class_product_img = 'view-image-box slick-slide slick-current slick-active'
@@ -119,72 +121,72 @@ def run()-> None:
     
     def scrape_page(driver):
         global links
-        global next_page
-
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        print("Scrolled to bottom of the page.")
-        
-        seen_links = set(links)  # Inicializar com os links já existentes (evitar duplicatas)
-        def get_items():
+        try:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            print("Scrolled to bottom of the page.")
+            
             # Encontrar todos os elementos da página
-            elems = WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, item_adjust(class_list_items)))
+            div_products = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_list_items)))
             )
-            print(f"Found {len(elems)} elements with class {class_list_items}.")
+            products = div_products.find_elements(By.CLASS_NAME,'item-inner')             
 
             # Obter os links dos elementos encontrados
-            tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
-            new_links = [tag.get_dom_attribute("href") for tag in tags if tag.get_dom_attribute("href")]
-            new_links = [link for link in new_links if link not in seen_links]  # Filtrar links duplicados
-
-            # Adicionar os links novos ao conjunto
-            seen_links.update(new_links)
-            print(f"Captured {len(new_links)} new links from the current page.")
-        # Navegar para a próxima página
-        try:
-            get_items()
+            tags = [product.find_element(By.CLASS_NAME, item_adjust("card-img cardImgSwiper")) for product in products]
+            links = [tag.get_dom_attribute("href") for tag in tags if tag.get_dom_attribute("href")]
+            print(f"Captured {len(links)} new links from the current page.")
+                
+            # Salvar os links no CSV
+            df = pd.DataFrame(links, columns=['Product Links'])
+            df.to_csv(real_links, index=False)
         except Exception as e:
-            print("Failed to capture items!:", e)
-
-        # Atualizar a lista global de links
-        links = list(seen_links)
-        print(f"Total unique links saved: {len(links)}")
-        
-        # Salvar os links no CSV
-        df = pd.DataFrame(links, columns=['Product Links'])
-        df.to_csv(real_links, index=False)
-
+            print("Unable to run the code, error: ",e)
 
     def process_product(driver, link):
         global products_data, main_headers
         driver.get(link)
-        driver.implicitly_wait(20)
-
         #----------------------------------------------------------------------------------------------------------------------------------------------------------------------GET LINK
         product_info = {'Link': link}
         #--------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT NAME
         try:
             product_name_element = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.TAG_NAME, "h1"))
+                EC.presence_of_element_located((By.ID, "goodsDetailNm"))
             )
             product_info['Name'] = product_name_element.text
+            print("hi")
         except Exception as e:
             product_info['Name'] = ""
             print("Error getting product name:", e)
-        unwanteds = ["+"]
-        if any(unwanted in product_info['Name'] for unwanted in unwanteds):
-            return    
+            
+        unwanted = "+"
+        if product_info['Name'] and unwanted in product_info["Name"]:
+            print(f"Unwanted character found in product name: {product_info['Name']}")
+            return   
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT SKU
         try:
             product_sku_element = WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_product_sku)))
             )
-            #TODO if sku in products_data already in the file, skip it
             product_info['SKU'] = product_sku_element.text
         except Exception as e:
             product_info['SKU'] = ""
             print("Error getting product SKU:", e)
             
+            
+            #--------------------------------------------------GET COLOR VARIANTS SKUs
+        try:
+            color_variants_skus_list = WebDriverWait(driver,5).until(
+                EC.presence_of_element_located((By.CLASS_NAME,item_adjust("dropList itm-color-list")))
+            ).find_elements(By.TAG_NAME,"li")
+            color_variants_skus = []
+            for li in color_variants_skus_list:
+                color_variants_skus.append((li.find_element(By.TAG_NAME,'input').get_dom_attribute('data-mdl-code')))
+            product_info["Color Variant SKUs"] = "\n".join(color_variants_skus)
+
+        except Exception as e:
+            print("Error getting color variants skus, error: ",e)
+            product_info["Color Variant SKUs"] = ""
+
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT FLAGS
         try:
             product_flags = driver.find_elements(By.CLASS_NAME,'itm-flag')
@@ -193,6 +195,7 @@ def run()-> None:
         except Exception as e:
             product_info['Flags'] = ""
             print("Error fetching flags: ", e)            
+            
         #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT IMAGE    
         try:
             product_image_link = WebDriverWait(driver, 20).until(
@@ -229,21 +232,27 @@ def run()-> None:
         except Exception as e:
             product_info['Price'] = ""
         #--------------------------------------------------------------------------------------------------------------------------------------------------------GET MORE PRODUCT IMAGE
-        
         images = []
         try:
-            div_more_images = driver.find_element(By.CLASS_NAME,item_adjust(class_more_images_div))
+            div_more_images = driver.find_element(By.CLASS_NAME, item_adjust(class_more_images_div))
             try:
-                images = div_more_images.find_elements(By.TAG_NAME,'img').get_dom_attribute("src")
-                images_adjusted = list(map(lambda x : "https"+x, images))
-                images_adjusted = "\n".join(images)
-                product_info['More Images Links'] = images_adjusted
+                # Capturar links das imagens dentro do <div>
+                images = [
+                    img.get_dom_attribute("src") 
+                    for img in div_more_images.find_elements(By.TAG_NAME, 'img') 
+                    if img.get_dom_attribute("src")
+                ]
+                
+                # Ajustar os links e preparar para salvar
+                images_adjusted = list(map(lambda x: "https" + x if not x.startswith("http") else x, images))
+                product_info['More Images Links'] = "\n".join(images_adjusted)
             except Exception as e: 
                 product_info['More Images Links'] = "N/A"
-                print("Error getting More Images could not get the images", e)
+                print("Error getting More Images could not get the images:", e)
         except Exception as e:       
             product_info['More Images Links'] = "N/A"
-            print("Error getting More Images could not get <div>", e)   
+            print("Error getting More Images could not get <div>:", e)
+        
            
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
@@ -283,7 +292,7 @@ def run()-> None:
                             header = spec_item.find_element(By.TAG_NAME, 'button').text
                         except:
                             header = spec_item.find_element(By.TAG_NAME,"strong").text
-                        spec = spec_item.find_element(By.TAG_NAME, "text").text
+                        spec = spec_item.find_element(By.TAG_NAME, "p").text
                         product_info[header] = spec
 
                         if header not in main_headers:
@@ -298,13 +307,24 @@ def run()-> None:
         print(f'COMPLETE SPEC ADDED:{product_info}\n')
         products_data.append(product_info)   
 
-        #------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT CLAIMS
+        #------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT CLAIMS        
         try:
-            claims_placeholder = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, item_adjust(class_claims_placeholder)))
+            claims_div = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME,item_adjust(class_claim_div)))
             )
-            claim_list = WebDriverWait(claims_placeholder, 10).until(
-                lambda placeholder: placeholder.find_elements(By.CLASS_NAME, item_adjust(class_claim))
+            
+            claim_list = (
+                WebDriverWait(claims_div, 10).until(
+                    EC.presence_of_all_elements_located(
+                        (By.CLASS_NAME, item_adjust(class_claims_placeholder_1)
+                         ))
+                ) 
+                +
+                WebDriverWait(claims_div, 10).until(
+                    EC.presence_of_all_elements_located(
+                        (By.CLASS_NAME,item_adjust(class_claims_placeholder_2)
+                    ))
+                )
             )
             
             for i, claim in enumerate(claim_list, start=1):  # Enumerate os claims
@@ -320,12 +340,12 @@ def run()-> None:
                 # Capturar imagens (espera explícita)
                 try:
                     images_list = WebDriverWait(claim, 10).until(
-                        lambda claim: claim.find_elements(By.TAG_NAME, 'img')
+                        EC.visibility_of_all_elements_located((By.TAG_NAME, 'img'))
                     )
                     for image in images_list:
                         src = image.get_dom_attribute('src') or image.get_dom_attribute('data-src')
                         if src:
-                            list_of_content.append(urljoin(BASE_URL, src))
+                            list_of_content.append(src)
                         else:
                             print(f"Image with no valid 'src' or 'data-src' in claim {i}")
                 except Exception as e:
@@ -334,13 +354,19 @@ def run()-> None:
                 # Capturar vídeos (espera explícita)
                 try:
                     videos_list = WebDriverWait(claim, 10).until(
-                        lambda claim: claim.find_elements(By.TAG_NAME, 'video')
+                        EC.visibility_of_all_elements_located((By.TAG_NAME, 'video'))
                     )
+                    # Para cada vídeo em videos_list, tente encontrar o primeiro elemento <source>.
+                    source_list = []
                     for video in videos_list:
-                        src = video.get_dom_attribute('src')
-                        if src:
-                            list_of_content.append(urljoin(BASE_URL, src))
-                        else:
+                        try:
+                            source = video.find_element(By.TAG_NAME, 'source').get_dom_attribute("src")  # Busca apenas o primeiro <source>
+                            source_list.append(source)
+                        except NoSuchElementException:
+                            print("Elemento <source> não encontrado para um vídeo.")                        
+                    if source_list:
+                        list_of_content.append("\n".join(source_list))
+                    else:
                             print(f"Video with no 'src' in claim {i}")
                 except Exception as e:
                     print(f"Error loading videos in claim {i}: {e}")
@@ -349,7 +375,7 @@ def run()-> None:
                 claim_links = claim.find_elements(By.TAG_NAME, 'a')
                 if claim_links:
                     list_of_content.extend([
-                        urljoin(BASE_URL, link.get_dom_attribute('href')) or "" for link in claim_links
+                        link.get_dom_attribute('href') or "" for link in claim_links
                     ])
                 else:
                     print(f"No links found in claim {i}")
@@ -427,27 +453,28 @@ def run()-> None:
         
         global links
         links = pd.Series(links).drop_duplicates().tolist()
-        for idx,link in enumerate(links,start=1): 
+        links = [link for link in links if link]  # Remove valores inválidos
+
+        for idx, link in enumerate(links, start=1): 
+            if not link:  # Ignora valores inválidos como segurança extra
+                print(f"Skipping invalid link at index {idx}, link: {link}")
+                continue
             try:
-                print(link)
-                process_product(driver, urljoin(BASE_URL,link))
-                print(f"Processing {idx}/{len(links)}: {urljoin(BASE_URL,link)}")
+                print(f'Before : {link} || After : {urljoin(BASE_URL,link)}')
+                process_product(driver, urljoin(BASE_URL, link))
+                print(f"Processing {idx}/{len(links)}: {urljoin(BASE_URL, link)}")
             except Exception as e:
                 print(f"Error getting into link:{link}\nReason: {e}")
                 continue
+
         links.clear()
+
 
     #---------------------------------------------------------------------------Begining---------------------------------------------------------------------#
     global products_data
     try:        
         driver.get(url)
         driver.implicitly_wait(20)  # Wait for it to load
-        try:
-            WebDriverWait(driver,30).until(
-                EC.element_to_be_clickable((By.ID,'link-button-1454703450485'))
-            ).click()
-        except:
-            pass
         print("Page loaded.")
         # search = WebDriverWait(driver, 30).until(
         #     EC.presence_of_element_located((By.CLASS_NAME, class_search_bar)))
@@ -498,5 +525,5 @@ def run()-> None:
     df.to_csv(real_output_path, index=False)
     
     print(df.info())
-    
-run() 
+with mode:
+    run() 
