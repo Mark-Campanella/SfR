@@ -2,3 +2,4 @@
 *.pyc
 APP
 .env
+Retail-Scrapers/logs/product_scraper.log
