@@ -5,6 +5,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+
 from selenium_stealth import stealth
 import pandas as pd
 import random
@@ -16,6 +18,8 @@ mode = wakepy.keep.presenting()
 
 #-----------------------------------------------------Personalization Variables---------------------------------------------------------------------#
 url = "https://www.samsung.com/sec/washing-machines/all-washing-machines/?bespoke-grande-ai-onebody"
+service = Service(r"C:\Users\CAMPAM4\Downloads\chromedriver-win64\chromedriver.exe")
+
 
 
 #-----------------------------------------------------Do Not Modify if no changes are required------------------------------------------------------#
@@ -101,7 +105,7 @@ def run()-> None:
     # rotate user agents 
     chrome_options.add_argument(f'user-agent={user_agent}')
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options,service=service)
     BASE_URL = "https://www.samsung.com/"
 
     # Change the property value of the navigator for webdriver to undefined

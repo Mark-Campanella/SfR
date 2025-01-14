@@ -8,6 +8,8 @@ from selenium_stealth import stealth
 import pandas as pd
 import random
 from urllib.parse import urljoin
+from selenium.webdriver.chrome.service import Service
+
 
 
 #TODO It is not getting specifications, nor it is gathering video links alright
@@ -63,6 +65,7 @@ def run()-> None:
     global no_file
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
     chrome_options = Options()
+    service = Service(r"C:\Users\CAMPAM4\Downloads\chromedriver-win64\chromedriver.exe")
     user_agents = [
         # Add your list of user agents here
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
@@ -97,7 +100,7 @@ def run()-> None:
     # rotate user agents 
     chrome_options.add_argument(f'user-agent={user_agent}')
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options,service=service)
     BASE_URL = "https://www.lge.co.kr/"
 
     # Change the property value of the navigator for webdriver to undefined
