@@ -286,7 +286,10 @@ def run(keywords:str)-> None:
                 features_btn = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.CLASS_NAME, class_product_features_btn))
                 )
-                features_btn.click()
+                try:
+                    features_btn.click()
+                except:
+                    driver.execute_script("arguments[0].click();", features_btn)
             except Exception as e:
                 log_error("Features Button", e)
 
@@ -313,9 +316,8 @@ def run(keywords:str)-> None:
         # User Manual and Spec Sheet
         try:
             documents = driver.find_elements(By.CLASS_NAME, 'manual-link.body-copy-lg')
-            product_info['User Manual'], product_info['Spec Sheet'] = [
-                doc.get_attribute('href') for doc in documents[:2]
-            ]
+            product_info['User Manual'] = documents[0].get_attribute('href') if len(documents) > 0 else "N/A"
+            product_info['Spec Sheet'] = documents[1].get_attribute('href') if len(documents) > 1 else "N/A"
         except Exception as e:
             log_error("Manual and Spec Sheet", e)
             product_info['User Manual'], product_info['Spec Sheet'] = "N/A", "N/A"
@@ -396,7 +398,10 @@ def run(keywords:str)-> None:
         
     except Exception as e:
         print("Not able to run the code, error: ", e)
-
+        logger.error(f"Not able to run the code, error: {e}")
+    df_links = pd.DataFrame(links, columns=['Product Links'])
+    df_links = df_links.drop_duplicates()
+    df_links.to_csv(real_links, index=False)
     #for each link get product info
     process_products(driver)
 
