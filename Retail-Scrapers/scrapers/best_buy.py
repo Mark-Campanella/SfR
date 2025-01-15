@@ -255,7 +255,7 @@ def run(keywords:str)-> None:
                         #I was having problem to click in the button, this is an atomic bomb, I know
                 try:
                     #Uses Selenium to click
-                    close_btn = WebDriverWait(driver, 20).until(
+                    close_btn = WebDriverWait(driver, 4).until(
                         EC.element_to_be_clickable((By.CLASS_NAME, class_product_price_btn_close_modal))
                     )
                     close_btn.click()
