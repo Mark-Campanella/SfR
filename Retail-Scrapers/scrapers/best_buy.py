@@ -237,6 +237,9 @@ def run(keywords:str)-> None:
         # Product Reviews
         product_info['Five Star'] = get_element_text(By.CLASS_NAME, class_product_5_star, "Five Star Reviews", timeout=30)
         product_info['Review Amount'] = get_element_text(By.CLASS_NAME, class_product_review_amount, "Review Amount", timeout=30)
+        
+        # Product Comments Summary
+        product_info['Comments Summary'] = get_element_text(By.CLASS_NAME, 'mb-200.mt-none', "Comments Summary", timeout=10)
 
         # Product Price
         try:
@@ -297,7 +300,10 @@ def run(keywords:str)-> None:
             if features_description:
                 description_features.append(features_description)
 
-            for feature in driver.find_elements(By.CLASS_NAME, class_product_features_div_of_ul_li):
+            div = driver.find_element(By.CLASS_NAME, class_product_features_div_of_ul_li)
+            ul = div.find_element(By.TAG_NAME, 'ul')
+            features = ul.find_elements(By.TAG_NAME, 'li')
+            for feature in features:
                 try:
                     h4 = feature.find_element(By.TAG_NAME, 'h4').text or f"Unnamed Feature"
                     p = feature.find_element(By.TAG_NAME, 'p').text
