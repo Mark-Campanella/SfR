@@ -2,3 +2,6 @@
 *.pyc
 APP
 Retail-Scrapers/logs/*.log
+2025-01-15_bb_scraping.log
+Retail-Scrapers/statics/traqline.csv
+Retail-Scrapers/statics/sasva.csv
