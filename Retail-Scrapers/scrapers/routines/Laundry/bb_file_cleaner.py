@@ -107,8 +107,10 @@ def cleanup(df: pd.DataFrame):
         df['Review Amount'] = df['Review Amount'].apply(clean_reviews)
     except Exception as e:
         print('Review Amount not cleaned', e)
-        
-    df['Capacity'] = df['Capacity'].apply(clean_capacity)
+    try:    
+        df['Capacity'] = df['Capacity'].apply(clean_capacity)
+    except Exception as e:
+        print('Not able to clean capacity', e)
     try:
         df['Dryer Capacity'] = df['Dryer Capacity'].apply(clean_capacity)
         df['Washer Capacity'] = df['Washer Capacity'].apply(clean_capacity)

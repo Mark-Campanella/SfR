@@ -218,7 +218,7 @@ def run(keywords:str)-> None:
                 element = WebDriverWait(driver, timeout).until(
                     EC.presence_of_element_located((by, identifier))
                 )
-                return element.get_attribute(attribute)
+                return element.get_dom_attribute(attribute)
             except Exception as e:
                 log_error(section_name, e)
                 return "N/A"
@@ -246,41 +246,106 @@ def run(keywords:str)-> None:
             price_div = driver.find_element(By.CLASS_NAME, class_product_price)
             product_info['Price'] = price_div.find_element(By.TAG_NAME, 'span').text
         except Exception as e:
-            log_error("Product Price - Initial", e)
-            product_info['Price'] = "N/A"
+            try:
+                driver.find_element(By.CLASS_NAME,class_product_price_btn_modal).click()
+                try:
+                    price_div = WebDriverWait(driver, 5).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, class_product_price_div_modal))
+                    )
+                    price_div = price_div.find_element(By.CLASS_NAME, class_product_price_innerdiv_modal)
+                    price_div = price_div.find_element(By.CLASS_NAME, class_product_price)
+                    price = price_div.find_element(By.TAG_NAME, 'span').text
+                    product_info['Price'] = price
+                except Exception as e_text:
+                    logger.error("Couldn't get the price because ", e_text)
+                    product_info['Price'] = ""
+                        #I was having problem to click in the button, this is an atomic bomb, I know
+                try:
+                    #Uses Selenium to click
+                    close_btn = WebDriverWait(driver, 3).until(
+                        EC.element_to_be_clickable((By.CLASS_NAME, class_product_price_btn_close_modal))
+                    )
+                    close_btn.click()
+                except Exception as e:
+                    print(f"Error clicking close button: {e}")
+                    try:
+                        # Uses JS to click
+                        driver.execute_script("arguments[0].click();", close_btn)
+                    except Exception as js_e:
+                        print(f"Error clicking close button with JS: {js_e}")
+                        try:
+                            #Just refresh if everything fails
+                            driver.refresh()
+                        except Exception as all_e:
+                            print("Error in all atempts to click in the close button: ", all_e)
+            except: logger.error("Couldn't close the modal nand/nor get the price properly")
 
         # More Product Images
+        inner_div_more_images = []
+        btn_images = []
+        images = []
         try:
             btn_more_images = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.CLASS_NAME, class_btn_more_images))
-            )
+                EC.element_to_be_clickable((By.CLASS_NAME, class_btn_more_images)))
             btn_more_images.click()
-            images = [
-                img.get_attribute('src') for img in driver.find_elements(By.CLASS_NAME, class_div_images)
-            ]
-            product_info['More Images Links'] = images or "N/A"
-        except Exception as e:
-            log_error("More Product Images", e)
+            try:
+                div_ol_more_images = driver.find_element(By.CLASS_NAME,'carousel-indicate.flex.flex-row.flex-wrap')
+                try:
+                    div_li_more_images = div_ol_more_images.find_elements(By.CLASS_NAME,'thumbnail-content.inline-block.mr-150.mb-150.inline-align-top')
+                    try:
+                        for each_li in div_li_more_images:
+                            inner_div_more_images.append(each_li.find_element(By.CLASS_NAME,class_div_images))
+                        for each_div_more_images in inner_div_more_images:
+                            btn_images.append(each_div_more_images.find_element(By.TAG_NAME, 'button'))
+                        for each_btn in btn_images:
+                            try:
+                                images.append(each_btn.find_element(By.TAG_NAME,'img').get_attribute('src'))
+                            except: pass
+                        product_info['More Images Links'] = images  
+                    except Exception as e: 
+                        product_info['More Images Links'] = "N/A"
+                        print("Error getting More Images could not get the div, or buttons, or image of each image", e)
+                except Exception as e:
+                    product_info['More Images Links'] = "N/A"
+                    print("Error getting More Images could not get the <li>s", e)    
+            except Exception as e:       
+                product_info['More Images Links'] = "N/A"
+                print("Error getting More Images could not get the <ol>", e) 
+        except Exception as e: 
             product_info['More Images Links'] = "N/A"
+            logger.error("Error getting More Images, could not click in the more images button", e)
 
         # Product Videos
         try:
-            videos = []
+            videos=[]
+            button_list = []
             btn_videos = driver.find_element(By.CLASS_NAME, class_videos_btn)
             btn_videos.click()
-            for video_btn in driver.find_elements(By.CLASS_NAME, class_each_video_btn):
+            try:    
+                list_of_videos = WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.CLASS_NAME,class_videos_list)))      
                 try:
-                    video_btn.click()
-                    video_src = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.TAG_NAME, 'source'))
-                    ).get_attribute('src')
-                    videos.append(video_src)
-                except Exception:
-                    continue
-            product_info['Videos Links'] = videos or "N/A"
+                    for item in list_of_videos:
+                        button_list.append(item.find_element(By.CLASS_NAME,class_each_video_btn))
+                    try:
+                        for button in button_list:
+                            try:
+                                button.click()
+                                video = WebDriverWait(driver,5).until(EC.presence_of_element_located((By.TAG_NAME,'source'))).get_attribute('src')
+                                videos.append(video)
+                            except:
+                                pass
+                        product_info['Videos Links'] = videos
+                    except Exception as e: print("Could not get the buttons or the videos", e)
+                except Exception as e: print("Could not get the list of videos", e)
+            except Exception as e: print("Could not find the video button, error: ", e)              
         except Exception as e:
-            log_error("Product Videos", e)
             product_info['Videos Links'] = "N/A"
+            print("Error getting Videos Links:", e)    
+        try: 
+            driver.find_element(By.CLASS_NAME,"c-close-icon.c-modal-close-icon").click()
+        except Exception as e:
+            print("Couldn't click quit button, refreashing...")
+            driver.refresh()
 
         # Description and Features
         try:
@@ -329,6 +394,39 @@ def run(keywords:str)-> None:
             product_info['User Manual'], product_info['Spec Sheet'] = "N/A", "N/A"
 
         # Add to global data
+        products_data.append(product_info)
+        
+        #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
+        try:
+            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
+        except Exception as e:
+            print("Couldn't click show full specs button:", e)
+        
+        try:
+            list_of_specs_ul = WebDriverWait(driver, 30).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, class_ul_item_specs))
+            )
+
+            for each_item in list_of_specs_ul:
+                try:
+                    spec_items = each_item.find_elements(By.CLASS_NAME, class_div_each_spec)
+                    for spec_item in spec_items:
+                        header = spec_item.find_element(By.CLASS_NAME, class_div_spec_type).text
+                        #I could not find a way of getting the spec text with CSS Classes
+                        #Then I could fetch by XPATH on a generic mode
+                        spec = spec_item.find_element(By.XPATH, ".//div[contains(@class, 'w-full') and not(contains(@class, 'mr-200'))]").text
+                        product_info[header] = spec
+                        if header not in main_headers:
+                            main_headers.append(header)
+                            
+                except Exception as e:
+                    print(f"Error extracting specification: {e}")
+                    continue
+                
+        except Exception as e:
+            print(f"Error occurred while getting specifications: {e}")
+            
+        print(f'COMPLETE SPEC ADDED:{product_info}\n')
         products_data.append(product_info)
 
     def process_products(driver):
