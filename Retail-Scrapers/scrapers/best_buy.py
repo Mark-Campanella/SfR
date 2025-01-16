@@ -347,39 +347,63 @@ def run(keywords:str)-> None:
             print("Couldn't click quit button, refreashing...")
             driver.refresh()
 
-        # Description and Features
         try:
             description_features = []
             try:
+                # Wait for and click the product features button
                 features_btn = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.CLASS_NAME, class_product_features_btn))
                 )
-                try:
-                    features_btn.click()
-                except:
-                    driver.execute_script("arguments[0].click();", features_btn)
+                features_btn.click()
+            except Exception as e: print("There was a problem finding the Features Button: ", e)
+            
+            try:
+                # Wait for and click the 'See More' button if it exists
+                see_more_btn = WebDriverWait(driver, 30).until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, class_product_features_seemore_btn))
+                ) 
+                see_more_btn.click()
             except Exception as e:
-                log_error("Features Button", e)
+                print("No 'See More' button found:", e)
+            try:
+                # Wait for and extract the main features description
+                features_description = WebDriverWait(driver, 30).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, class_product_features_description_text))
+                ).text
 
-            features_description = get_element_text(By.CLASS_NAME, class_product_features_description_text, "Features Description")
-            if features_description:
                 description_features.append(features_description)
+            except: print('No text description found')
+            
+            # Wait for the div containing the list of features
+            div_of_features = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, class_product_features_div_of_ul_li))
+            )
 
-            div = driver.find_element(By.CLASS_NAME, class_product_features_div_of_ul_li)
-            ul = div.find_element(By.TAG_NAME, 'ul')
-            features = ul.find_elements(By.TAG_NAME, 'li')
-            for feature in features:
+            # Extract the features list
+            list_of_features = div_of_features.find_elements(By.TAG_NAME, "li")
+            i=1
+            feature = 1
+            for each_element in list_of_features:
                 try:
-                    h4 = feature.find_element(By.TAG_NAME, 'h4').text or f"Unnamed Feature"
-                    p = feature.find_element(By.TAG_NAME, 'p').text
-                    description_features.append(f"{h4}: {p}")
+                    try:
+                        h4 = each_element.find_element(By.TAG_NAME, 'h4').text
+                    except:
+                        h4=f'Unamed {i}'
+                        i+=1
+                    p = each_element.find_element(By.TAG_NAME, 'p').text  
+                    feature_line = f"{h4}: {p}"
+                    description_features.append(feature_line)
+                    feature += 1
                 except Exception as e:
-                    log_error("Feature Extraction", e)
+                    print("Error extracting feature:", e)
+                    continue
 
-            product_info['Description'] = "\n".join(description_features) or "N/A"
+            product_info['Description'] = '\n'.join(description_features)
+            
         except Exception as e:
-            log_error("Description and Features", e)
             product_info['Description'] = "N/A"
+            print("Error getting Features:", e)
+
 
         # Energy Guide
         product_info['Energy Guide'] = get_element_attribute(By.CLASS_NAME, 'c-button-link.energy-guide-link.ml-150', 'href', "Energy Guide")
@@ -468,7 +492,7 @@ def run(keywords:str)-> None:
         '''
         try:
             #If exists, run based on the links given
-            links = pd.read_csv(no_file)
+            links = pd.read_csv(real_links)
             links = links["Product Links"].to_list()
             
             #If no links in the file, execute the routine
