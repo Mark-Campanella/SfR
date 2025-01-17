@@ -422,9 +422,13 @@ def run(keywords:str)-> None:
         
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
-            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
+            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
         except Exception as e:
-            print("Couldn't click show full specs button:", e)
+            try:
+                show_full_specs_btn = driver.find_element(By.CLASS_NAME, class_show_full_specs)
+                driver.execute_script("arguments[0].click();", show_full_specs_btn)
+            except Exception as e:
+                logger.error(f'Error clicking in the Spec btn - {e}')
         
         try:
             list_of_specs_ul = WebDriverWait(driver, 30).until(
