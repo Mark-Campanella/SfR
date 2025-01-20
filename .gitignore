@@ -5,3 +5,6 @@ Retail-Scrapers/logs/*.log
 2025-01-15_bb_scraping.log
 Retail-Scrapers/statics/traqline.csv
 Retail-Scrapers/statics/sasva.csv
+Retail-Scrapers/outputs/Best_Buy/added_models.csv
+Retail-Scrapers/outputs/Best_Buy/product_data.csv
+Retail-Scrapers/outputs/Best_Buy/removed_models.csv
