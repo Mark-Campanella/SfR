@@ -4,7 +4,7 @@ from tkinter import filedialog
 import os
 import shutil
 from wakepy import keep
-from scrapers import amazon,best_buy,magazineluiza
+from scrapers import amazon,best_buy,magazineluiza, lowes
 
 # Prevents computer from going to sleep
 mode = keep.presenting()
@@ -48,6 +48,7 @@ class CustomEntryFrame(CTK.CTkFrame):
         self.columnconfigure(1, weight=1)  # Ensure the combobox expands to fill space
         
 country_list_BB = ['USA']
+country_list_Lowes =  ['USA']
 country_list_Amazon = ['USA', 'MXC', 'India', 'BR']
 country_list_Magazineluiza = ['BR']
 
@@ -83,6 +84,8 @@ def on_confirm():
         if selected_retail == "Best Buy": best_buy.run(keyword_value)            
         elif selected_retail == "Amazon": amazon.run(keyword_value, selected_country, str(need_change_location))
         elif selected_retail == 'Magazineluiza': magazineluiza.run(keyword_value)
+        elif selected_retail == "Lowe's": lowes.run(keyword_value)
+
 
         # Habilitar o botão de download após a conclusão do subprocesso
         download_button.configure(state='normal')
@@ -96,6 +99,8 @@ def update_country_list(*args):
     selected_retail = retail.get()
     if selected_retail == 'Best Buy':
         list_CB = country_list_BB
+    elif selected_retail == "Lowe's":
+        list_CB = country_list_Lowes
     elif selected_retail == 'Amazon':
         list_CB = country_list_Amazon
     elif selected_retail == 'Magazineluiza':
@@ -247,7 +252,7 @@ with mode:
     hint_label.pack(pady=5, padx=20, fill='x')
 
     # Retail combobox frame
-    retail_frame = CustomFrame(frame, label_text="            Retail            ", combobox_values=['Amazon', 'Best Buy', 'Magazineluiza'])
+    retail_frame = CustomFrame(frame, label_text="            Retail            ", combobox_values=['Amazon', 'Best Buy', "Lowe's", 'Magazineluiza'])
     retail_frame.pack(pady=10, padx=20, fill='x')
 
     retail = CTK.StringVar(value="")
