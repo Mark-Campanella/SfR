@@ -20,7 +20,7 @@ def merge(df: pd.DataFrame):
 
     try:    
         df_launch_year = pd.read_csv("statics/traqline.csv")  # Get traqline SKUmetrix data
-        df_launch_year = df_launch_year.rename(columns={'SKU': 'Identifier', 'Launch Year': 'Year'})
+        df_launch_year = df_launch_year.rename(columns={'SKU': 'Identifier', 'SKUs Recently Added': 'Year'})
         df_merged = pd.merge(
             df_merged,
             df_launch_year[['Identifier', 'Year']],

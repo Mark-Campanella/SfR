@@ -10,6 +10,8 @@ import pandas as pd
 from scrapers.routines.Laundry.bb_file_cleaner import cleanup
 from scrapers.routines.Laundry.bb_merger import merge
 import random
+import logging
+from datetime import datetime
 
 
 
@@ -73,7 +75,18 @@ old_file = 'statics/old_file.csv'
 #Force run
 no_file = "statics/no_file.csv"
 
+
+
 def run(keywords:str)-> None:
+    # Configure logging
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    log_filename = f"logs/{current_date}_bb_scraping.log"
+    logging.basicConfig(filename=log_filename, level=logging.INFO, 
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    logger.info("Logging is configured.")
+
     global next_page
     global products_data
     global links
@@ -142,6 +155,7 @@ def run(keywords:str)-> None:
             )
             no_thanks_button.click()
             print("Survey dismissed")
+            logger.info("Survey appeared and was dismissed")
         except:
             print("No survey popup")
             
@@ -155,6 +169,7 @@ def run(keywords:str)-> None:
             elems = WebDriverWait(driver, 30).until(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, class_items)))
             print(f"Found {len(elems)} elements with class {class_items}.")
+            logger.info(f"Found {len(elems)} elements with class {class_items}.")
 
             tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
             links.extend([tag.get_attribute("href") for tag in tags])
@@ -163,86 +178,79 @@ def run(keywords:str)-> None:
                 next_page = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.CLASS_NAME, class_next_button))).get_attribute("href")
                 print(f"Found next page: {next_page}")
+                logger.info(f"Found next page: {next_page}")
             except:
                 next_page = None
                 print("No next page found.")
+                logger.info("No next page found.")
                 #save list of last scraped items, for threads usage later 
                 df = pd.DataFrame(links, columns=['Product Links'])
                 df = df.drop_duplicates()
                 df.to_csv(real_links, index=False)
         except Exception as e:
             print("Error!! ", e)
+            logger.error(f"Error: {e}")
 
     def process_product(driver, link):
         global products_data, main_headers
         driver.get(link)
         driver.implicitly_wait(20)
         handle_survey()
-        
-        #----------------------------------------------------------------------------------------------------------------------------------------------------------------------GET LINK
-        product_info = {'Link': link}
-        #--------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT NAME
-        try:
-            product_name_element = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.TAG_NAME, "h1"))
-            )
-            product_info['Name'] = product_name_element.text
-        except Exception as e:
-            product_info['Name'] = "N/A"
-            print("Error getting product name:", e)
-        unwanteds = ["Package", "Stacking Kit", "sorry"]
-        if any(unwanted in product_info['Name'] for unwanted in unwanteds):
-            return    
-        #---------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT SKU
-        try:
-            product_sku_element = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.CLASS_NAME, class_product_sku))
-            )
-            #TODO if sku in products_data already in the file, skip it
-            product_info['SKU'] = product_sku_element.text
-        except Exception as e:
-            product_info['SKU'] = "N/A"
-            print("Error getting product SKU:", e)
-            
-        #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT IMAGE    
-        try:
-            product_image_link = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.CLASS_NAME, class_product_img)))
-            product_info['Image Link'] = product_image_link.get_attribute('src')
-        except Exception as e:
-            product_info['Image Link'] = "N/A"
-            print("Error getting product SKU:", e)
 
-        #----------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT 5-STAR REVIEWS       
-        try:
-            five_star = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, class_product_5_star))
-            ).text
-            product_info['Five Star'] = five_star
-        except Exception as e:
-            product_info['Five Star'] = "N/A"
-            print("Error getting five star rating:", e)
-            
-        #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET REVIEW AMOUNT
-        try:
-            review_amount = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, class_product_review_amount))
-            ).text
-            product_info['Review Amount'] = review_amount
-        except Exception as e:
-            product_info['Review Amount'] = "N/A"
-            print("Error getting review amount:", e)      
-                
-        #-------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT PRICE
+        product_info = {'Link': link}
+        unwanteds = ["Package", "Stacking Kit", "sorry"]
+
+        def log_error(section, error):
+            print(f"Error in {section}: {error}")
+            logger.error(f"Error in {section}: {error}")
+
+        def get_element_text(by, identifier, section_name, timeout=20):
+            try:
+                element = WebDriverWait(driver, timeout).until(
+                    EC.presence_of_element_located((by, identifier))
+                )
+                return element.text
+            except Exception as e:
+                log_error(section_name, e)
+                return "N/A"
+
+        def get_element_attribute(by, identifier, attribute, section_name, timeout=20):
+            try:
+                element = WebDriverWait(driver, timeout).until(
+                    EC.presence_of_element_located((by, identifier))
+                )
+                return element.get_dom_attribute(attribute)
+            except Exception as e:
+                log_error(section_name, e)
+                return "N/A"
+
+        # Product Name
+        product_info['Name'] = get_element_text(By.TAG_NAME, "h1", "Product Name")
+        if any(unwanted in product_info['Name'] for unwanted in unwanteds):
+            return
+
+        # Product SKU
+        product_info['SKU'] = get_element_text(By.CLASS_NAME, class_product_sku, "Product SKU")
+
+        # Product Image
+        product_info['Image Link'] = get_element_attribute(By.CLASS_NAME, class_product_img, 'src', "Product Image")
+
+        # Product Reviews
+        product_info['Five Star'] = get_element_text(By.CLASS_NAME, class_product_5_star, "Five Star Reviews", timeout=30)
+        product_info['Review Amount'] = get_element_text(By.CLASS_NAME, class_product_review_amount, "Review Amount", timeout=30)
+        
+        # Product Comments Summary
+        product_info['Comments Summary'] = get_element_text(By.CLASS_NAME, 'mb-200.mt-none', "Comments Summary", timeout=10)
+
+        # Product Price
         try:
             price_div = driver.find_element(By.CLASS_NAME, class_product_price)
             product_info['Price'] = price_div.find_element(By.TAG_NAME, 'span').text
         except Exception as e:
-            #Some times the product has the price hidden (it needs to be added in your cart to show price, so that is what this is doing)
             try:
                 driver.find_element(By.CLASS_NAME,class_product_price_btn_modal).click()
                 try:
-                    price_div = WebDriverWait(driver, 10).until(
+                    price_div = WebDriverWait(driver, 5).until(
                         EC.presence_of_element_located((By.CLASS_NAME, class_product_price_div_modal))
                     )
                     price_div = price_div.find_element(By.CLASS_NAME, class_product_price_innerdiv_modal)
@@ -250,12 +258,12 @@ def run(keywords:str)-> None:
                     price = price_div.find_element(By.TAG_NAME, 'span').text
                     product_info['Price'] = price
                 except Exception as e_text:
-                    print("Couldn't get the price because ", e_text)
+                    logger.error("Couldn't get the price because ", e_text)
                     product_info['Price'] = ""
                         #I was having problem to click in the button, this is an atomic bomb, I know
                 try:
                     #Uses Selenium to click
-                    close_btn = WebDriverWait(driver, 20).until(
+                    close_btn = WebDriverWait(driver, 3).until(
                         EC.element_to_be_clickable((By.CLASS_NAME, class_product_price_btn_close_modal))
                     )
                     close_btn.click()
@@ -271,9 +279,9 @@ def run(keywords:str)-> None:
                             driver.refresh()
                         except Exception as all_e:
                             print("Error in all atempts to click in the close button: ", all_e)
-            except: print("Couldn't close the modal nand/nor get the price properly")
-            
-        #--------------------------------------------------------------------------------------------------------------------------------------------------------GET MORE PRODUCT IMAGE
+            except: logger.error("Couldn't close the modal nand/nor get the price properly")
+
+        # More Product Images
         inner_div_more_images = []
         btn_images = []
         images = []
@@ -306,9 +314,9 @@ def run(keywords:str)-> None:
                 print("Error getting More Images could not get the <ol>", e) 
         except Exception as e: 
             product_info['More Images Links'] = "N/A"
-            print("Error getting More Images, could not click in the more images button", e)
-            
-        #------------------------------------------------------------------------------------------------------------------------------------------------------------GET PRODUCT VIDEOS    
+            logger.error("Error getting More Images, could not click in the more images button", e)
+
+        # Product Videos
         try:
             videos=[]
             button_list = []
@@ -339,8 +347,7 @@ def run(keywords:str)-> None:
         except Exception as e:
             print("Couldn't click quit button, refreashing...")
             driver.refresh()
-            
-        #--------------------------------------------------------------------------------------------------------------------------------------------------GET DESCRIPTION AND FEATURES        
+
         try:
             description_features = []
             try:
@@ -397,55 +404,32 @@ def run(keywords:str)-> None:
         except Exception as e:
             product_info['Description'] = "N/A"
             print("Error getting Features:", e)
-            
-        #Get Energy guide
-        try:
-            energy_guide = driver.find_element(By.CLASS_NAME,'c-button-link.energy-guide-link.ml-150').get_attribute("href")
-            product_info['Energy Guide'] = energy_guide
-        except Exception as e:
-            product_info['Energy Guide'] = None
-            print("Error getting the energy guide, sorry, error: ",e)
 
-        #Get Manual and Specsheet
+
+        # Energy Guide
+        product_info['Energy Guide'] = get_element_attribute(By.CLASS_NAME, 'c-button-link.energy-guide-link.ml-150', 'href', "Energy Guide")
+
+        # User Manual and Spec Sheet
         try:
-            documents = driver.find_elements(By.CLASS_NAME,'manual-link.body-copy-lg')
-            doc1 = documents[0].get_attribute('href')
-            doc2 = documents[1].get_attribute('href')
-            
-            if 'user' in doc1.lower() or 'owners' in doc1.lower() or 'specs' in doc2.lower():
-                product_info['User Manual'] = doc1
-                product_info['Spec Sheet'] = doc2
-            else:
-                product_info['Spec Sheet'] = doc1
-                product_info['User Manual'] = doc2
-        except: 
-            print("Error getting the manual, maybe it doesn't exist here? I will try something else...")
-            try:
-                doc = driver.find_element(By.CLASS_NAME,'manual-link.body-copy-lg').get_attribute('href')
-                if 'User' in doc:
-                    product_info['User Manual'] = doc
-                else:
-                    product_info['Spec Sheet'] = doc
-            except Exception as e:
-                product_info['Document 1'] = None
-                print("Nope, could not find a document, sorry...\n",e)
-            
-        finally:
-            try:
-                # Attempt to close any modal that might be open
-                close_icon = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, 'c-close-icon'))
-                )
-                close_icon.click()
-            except Exception as e:
-                print("No close icon found, refreshing page:", e)
-                driver.refresh()
-                
+            documents = driver.find_elements(By.CLASS_NAME, 'manual-link.body-copy-lg')
+            product_info['User Manual'] = documents[0].get_attribute('href') if len(documents) > 0 else "N/A"
+            product_info['Spec Sheet'] = documents[1].get_attribute('href') if len(documents) > 1 else "N/A"
+        except Exception as e:
+            log_error("Manual and Spec Sheet", e)
+            product_info['User Manual'], product_info['Spec Sheet'] = "N/A", "N/A"
+
+        # Add to global data
+        products_data.append(product_info)
+        
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
-            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
+            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
         except Exception as e:
-            print("Couldn't click show full specs button:", e)
+            try:
+                show_full_specs_btn = driver.find_element(By.CLASS_NAME, class_show_full_specs)
+                driver.execute_script("arguments[0].click();", show_full_specs_btn)
+            except Exception as e:
+                logger.error(f'Error clicking in the Spec btn - {e}')
         
         try:
             list_of_specs_ul = WebDriverWait(driver, 30).until(
@@ -494,6 +478,7 @@ def run(keywords:str)-> None:
         handle_survey()
         driver.implicitly_wait(20)  # Wait for it to load
         print("Page loaded.")
+        logger.info("Page loaded.")
         search = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CLASS_NAME, class_search_bar)))
         search.send_keys(search_for)
@@ -526,6 +511,7 @@ def run(keywords:str)-> None:
                         i+=1
                         driver.get(next_page)
                         print(f"Navigating to next page: {next_page}: {i}")
+                        logger.info(f"Navigating to next page: {next_page}: {i}")
                     else: 
                         break
         #If file doesn't exist, run routine to get it and save it later
@@ -539,12 +525,16 @@ def run(keywords:str)-> None:
                     i+=1
                     driver.get(next_page)
                     print(f"Navigating to next page: {next_page}: {i}")
+                    logger.info(f"Navigating to next page: {next_page}: {i}")
                 else: 
                     break
         
     except Exception as e:
         print("Not able to run the code, error: ", e)
-
+        logger.error(f"Not able to run the code, error: {e}")
+    df_links = pd.DataFrame(links, columns=['Product Links'])
+    df_links = df_links.drop_duplicates()
+    df_links.to_csv(real_links, index=False)
     #for each link get product info
     process_products(driver)
 
@@ -568,17 +558,24 @@ def run(keywords:str)-> None:
         df = cleanup(df)
     except Exception as e:
         print("Not able to cleanup, ", e)
+        logger.error(f"Not able to cleanup, {e}")
         df = df_save
     try:
         df = merge(df)
     except Exception as e:
         print("Not able to merge with the SAS VA and Traqline's SKU data")
+        logger.error(f"Not able to merge with the SAS VA and Traqline's SKU data, {e}")
         
     #Get last scraped information
     try:
         df_old = pd.read_csv(old_file)
-    except FileNotFoundError as e: print ("Not able to locate file: ",e)
-    except Exception as e: print("Error: ", e)
+    except FileNotFoundError as e:
+        print ("Not able to locate file: ",e)
+        logger.error(f"Not able to locate file: {e}")
+    except Exception as e:
+        print("Error: ", e)
+        logger.error(f"Error: {e}")
+        
     #compare the SKU to see if there were models coming in and out 
     try:
 
@@ -594,6 +591,7 @@ def run(keywords:str)-> None:
         
     except Exception as e:
         print("Not able to detect changes! Something went wrong: ",e)
+        logger.error(f"Not able to detect changes! Something went wrong: {e}")
         
     finally:
         # Save the updated DataFrame
