@@ -75,17 +75,18 @@ old_file = 'statics/old_file.csv'
 #Force run
 no_file = "statics/no_file.csv"
 
-# Configure logging
-current_date = datetime.now().strftime("%Y-%m-%d")
-log_filename = f"logs/{current_date}_bb_scraping.log"
-logging.basicConfig(filename=log_filename, level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-logger.info("Logging is configured.")
 
 
 def run(keywords:str)-> None:
+    # Configure logging
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    log_filename = f"logs/{current_date}_bb_scraping.log"
+    logging.basicConfig(filename=log_filename, level=logging.INFO, 
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    logger.info("Logging is configured.")
+
     global next_page
     global products_data
     global links
@@ -496,7 +497,7 @@ def run(keywords:str)-> None:
         '''
         try:
             #If exists, run based on the links given
-            links = pd.read_csv(real_links)
+            links = pd.read_csv(no_file)
             links = links["Product Links"].to_list()
             
             #If no links in the file, execute the routine
