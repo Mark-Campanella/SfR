@@ -1,9 +1,9 @@
 # SOFTWARE MANIFEST
 
 #### Software Name: Scraper for Retails
-#### Version: 1.0
+#### Version: 1.1
 #### Author: Marcos Campanella
-#### Date: 08-08-2024
+#### Date: 28-01-2025
 
 ## Terms and Conditions
 This software is provided to you under the following terms and conditions. By using this software, you agree to abide by these terms:

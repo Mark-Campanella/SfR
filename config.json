@@ -7,7 +7,7 @@
   },
   {
    "optionDest": "filenames",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/interface.py"
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers/interface.py"
   },
   {
    "optionDest": "onefile",
@@ -19,7 +19,7 @@
   },
   {
    "optionDest": "icon_file",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/statics/favicon.ico"
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers/statics/favicon.ico"
   },
   {
    "optionDest": "name",
@@ -31,7 +31,7 @@
   },
   {
    "optionDest": "upx_dir",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers"
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers"
   },
   {
    "optionDest": "clean_build",
@@ -66,18 +66,6 @@
    "value": false
   },
   {
-   "optionDest": "datas",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/outputs;outputs/"
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/scrapers;scrapers/"
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/Retail-Scrapers/statics;statics/"
-  },
-  {
    "optionDest": "hiddenimports",
    "value": "selenium"
   },
@@ -86,20 +74,28 @@
    "value": "pandas"
   },
   {
-   "optionDest": "pathex",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/.venv/Lib/site-packages/selenium_stealth"
-  },
-  {
-   "optionDest": "pathex",
-   "value": "C:/Users/CAMPAM4/Documents/GitHub/SfR/.venv/Lib/site-packages"
-  },
-  {
    "optionDest": "hiddenimports",
    "value": "customtkinter"
   },
   {
    "optionDest": "hiddenimports",
    "value": "wakepy"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers/scrapers;scrapers/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers/outputs;outputs/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers/statics;statics/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/CAMPAM4/Documents/SfR/Retail-Scrapers/logs;logs/"
   }
  ],
  "nonPyinstallerOptions": {
