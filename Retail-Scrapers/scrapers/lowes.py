@@ -8,10 +8,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+
 from selenium_stealth import stealth
+import undetected_chromedriver as uc
+import seleniumwire.undetected_chromedriver as uc
+
+
 import pandas as pd
 # from scrapers.routines.Laundry.bb_file_cleaner import cleanup
 from scrapers.routines.Laundry.bb_merger import merge
+from scrapers.routines.Laundry.bb_file_cleaner import cleanup
+
 import random
 import logging
 from datetime import datetime
@@ -136,7 +143,7 @@ def mimic(driver):
 
     if "click" in selected_behaviors:
         # Clique aleatório em links ou elementos visíveis
-        clickable_elements = driver.find_elements_by_css_selector('a, button, [role="button"]')
+        clickable_elements = driver.find_elements(By.CSS_SELECTOR, 'a, button, [role="button"]')
         if clickable_elements:
             element = random.choice(clickable_elements)
             
@@ -181,7 +188,7 @@ def run(keywords:str)-> None:
     global old_file
     global no_file
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
-    chrome_options = Options()
+    chrome_options = uc.ChromeOptions()
     user_agents = [
         # Add your list of user agents here
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
@@ -194,7 +201,6 @@ def run(keywords:str)-> None:
     ]
     user_agent = random.choice(user_agents)
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
-    chrome_options = Options()
     # start the browser window in maximized mode
     chrome_options.add_argument("--start-maximized")
     # disable the AutomationControlled feature of Blink rendering engine
@@ -208,20 +214,18 @@ def run(keywords:str)-> None:
     # disable extensions
     chrome_options.add_argument("--disable-extensions")
     #run in headless mode
-    #chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
     # disable sandbox mode
-    chrome_options.add_argument('--no-sandbox')
+    # chrome_options.add_argument('--no-sandbox')
     # disable shared memory usage
-    chrome_options.add_argument('--disable-dev-shm-usage')
+    # chrome_options.add_argument('--disable-dev-shm-usage')
     # rotate user agents 
-    chrome_options.add_argument(f'user-agent={user_agent}')
-    chrome_options.add_argument('Accept-Language: en-US,en;q=0.9')
-    chrome_options.add_argument('Referer: https://www.bestbuy.com/?intl=nosplash')
+    chrome_options.add_argument(f'user-agent={user_agent}')    
+    #chrome_options.add_argument("--headless=new")
 
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = uc.Chrome(options=chrome_options, seleniumwire_options={})
     # Change the property value of the navigator for webdriver to undefined
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     stealth(driver,
             vendor="Google Inc.",
             platform="Win32",
@@ -229,14 +233,23 @@ def run(keywords:str)-> None:
             renderer="Intel Iris OpenGL Engine",
             fix_hairline=True)
     
+    
+    driver.request_interceptor = lambda request: request.headers.update({
+        "Accept-Language": "en-US,en;q=0.9,pt-BR;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.lowes.com"
+    })
+
+    
     driver.execute_script("""
-        Object.defineProperty(navigator, 'languages', {
-            get: function() { return ['en-US', 'en']; }
-        });
-        Object.defineProperty(navigator, 'plugins', {
-            get: function() { return [ { name: 'Chrome PDF Viewer' }, { name: 'Native Client' } ]; }
-        });
-        """)
+        Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+        Object.defineProperty(navigator, 'platform', {get: () => 'Win32'});
+        Object.defineProperty(navigator, 'userAgent', {get: () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'});
+        Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+        Object.defineProperty(navigator, 'plugins', {get: () => [{name: 'Chrome PDF Viewer'}, {name: 'Native Client'}]});
+    """)
+    driver.set_page_load_timeout(30)
+
     
 
 
@@ -341,6 +354,7 @@ def run(keywords:str)-> None:
                 return "N/A"
 
         # Product Name
+        mimic(driver)
         product_info['Name'] = get_element_text(By.TAG_NAME, "h1", "Product Name")
         if any(unwanted in product_info['Name'] for unwanted in unwanteds):
             return
@@ -433,10 +447,6 @@ def run(keywords:str)-> None:
         # except Exception as e:
         #     print("Couldn't click quit button, refreashing...")
         #     driver.refresh()
-        driver.execute_script("window.navigator.chrome = {runtime: {}};")
-        driver.execute_script("window.navigator.webdriver = undefined;")
-        driver.execute_script("Object.defineProperty(navigator, 'platform', {get: function() {return 'Win32';}});")
-        driver.execute_script("Object.defineProperty(navigator, 'userAgent', {get: function() {return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36';}});")
 
         try:
             description_features = []
@@ -447,6 +457,7 @@ def run(keywords:str)-> None:
                 div = WebDriverWait(driver, 30).until(
                     EC.presence_of_element_located((By.CLASS_NAME, class_product_features_div))
                 )
+                mimic(driver)
                 # Espera e extrai a descrição das características principais
                 features_description = WebDriverWait(div, 4).until(
                     EC.presence_of_element_located((By.CLASS_NAME, class_product_features_description_text))
@@ -501,6 +512,7 @@ def run(keywords:str)-> None:
             # Loop through each guide item and extract the 'href' attribute of the <a> tags inside
             for guide_item in guide_items:
                 try:
+                    mimic()
                     # Find the <a> tag inside the guide item and extract its 'href' attribute
                     link = guide_item.find_element(By.TAG_NAME, 'a').get_attribute('href')
                     # Find the <span> tag inside the guide item (adjust if necessary)
@@ -576,7 +588,7 @@ def run(keywords:str)-> None:
                     WebDriverWait(driver, 10).until(
                         EC.visibility_of_element_located((By.CLASS_NAME, class_specs_div))
                     )
-                    
+                    mimic(driver)
                     # Re-run the extraction logic after expanding the specs
                     specs_div = WebDriverWait(driver, 30).until(
                         EC.presence_of_element_located((By.CLASS_NAME, class_specs_div))
@@ -632,18 +644,24 @@ def run(keywords:str)-> None:
     global products_data
     try:        
         driver.get(url)
-        mimic()        # handle_survey()
+        mimic(driver)        # handle_survey()
+        time.sleep(180)
         driver.implicitly_wait(20)  # Wait for it to load
         print("Page loaded.")
         logger.info("Page loaded.")
+
         search = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CLASS_NAME, class_search_bar)))
+        driver.execute_script("arguments[0].scrollIntoView(true);", search)
+
         search.send_keys(search_for)
-        
+        mimic(driver)
         time.sleep(2)
         
         button = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((By.CLASS_NAME, class_search_button)))
+        driver.execute_script("arguments[0].scrollIntoView(true);", search)
+
         button.click()
         
         driver.implicitly_wait(20)  # Wait for it to load
