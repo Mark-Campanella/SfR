@@ -567,8 +567,12 @@ def run(keywords:str)-> None:
         logger.error(f"Not able to merge with the SAS VA and Traqline's SKU data, {e}")
         
     #Get last scraped information
+    df_old = pd.DataFrame()
     try:
         df_old = pd.read_csv(old_file)
+        if df_old.empty:
+            print("No old file found, creating one...")
+            logger.info("No old file found, creating one...")
     except FileNotFoundError as e:
         print ("Not able to locate file: ",e)
         logger.error(f"Not able to locate file: {e}")
@@ -578,7 +582,6 @@ def run(keywords:str)-> None:
         
     #compare the SKU to see if there were models coming in and out 
     try:
-
         # See SKUs removed → if in old but not in new then the item was removed
         removed_skus = df_old[~df_old['SKU'].isin(df['SKU'])].copy()
         
