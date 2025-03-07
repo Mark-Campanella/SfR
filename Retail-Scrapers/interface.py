@@ -84,13 +84,13 @@ def on_confirm():
         elif selected_retail == "Amazon": amazon.run(keyword_value, selected_country, str(need_change_location))
         elif selected_retail == 'Magazineluiza': magazineluiza.run(keyword_value)
 
-        # Habilitar o botão de download após a conclusão do subprocesso
-        download_button.configure(state='normal')
         
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while executing the script: {e}")
         show_message()
-    
+    finally:
+        # Habilitar o botão de download após a conclusão do subprocesso
+        download_button.configure(state='normal')
 
 def update_country_list(*args):
     selected_retail = retail.get()
@@ -269,7 +269,7 @@ with mode:
     confirm_button = CTK.CTkButton(master=frame, text='Confirm', command=on_confirm)
     confirm_button.pack(pady=10, padx=20)
 
-    download_button = CTK.CTkButton(master=frame, text='Download Products Data', command=on_button_click, state='disabled')
+    download_button = CTK.CTkButton(master=frame, text='Download Products Data', command=on_button_click)
     download_button.pack(pady=10, padx=20)
 
     root.mainloop()
