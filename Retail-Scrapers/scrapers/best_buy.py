@@ -10,6 +10,7 @@ from selenium_stealth import stealth
 import pandas as pd
 from scrapers.routines.Laundry.bb_file_cleaner import cleanup
 from scrapers.routines.Laundry.bb_merger import merge
+from scrapers.Reviews.bb_reviews import *
 import random
 import logging
 from datetime import datetime
@@ -60,6 +61,8 @@ class_div_each_spec = "zebra-row.flex.p-200.justify-content-between.body-copy-lg
 class_div_spec_type = "mr-100.inline"
 class_div_spec_text = "w-full"
 
+class_btn_see_all_reviews = "c-button.c-button-secondary.c-button-md.c-button-block.see-more-reviews.mb-xs-300.mb-md-none.mr-md-400"
+
 # Global Variables
 next_page = None
 links = []
@@ -75,6 +78,7 @@ real_output_path= 'outputs/Best_Buy/product_data.csv'
 old_file = 'statics/old_file.csv'
 #Force run
 no_file = "statics/no_file.csv"
+reviews_links : List[str] = []
 
 
 
@@ -98,6 +102,7 @@ def run(keywords:str)-> None:
     global real_output_path
     global old_file
     global no_file
+    global reviews_links
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
     chrome_options = Options()
     user_agents = [
@@ -458,7 +463,34 @@ def run(keywords:str)-> None:
             
         print(f'COMPLETE SPEC ADDED:{product_info}\n')
         products_data.append(product_info)
+        get_reviews_link()
+        
+    def get_reviews_link():
+        try:
+            reviews_link = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME(class_btn_see_all_reviews)))).get_dom_attribute('href')
+            reviews_links.append(reviews_link)
+        except Exception as e:
+            logger.info("Error finding the reviews button")
 
+    def get_reviews() -> None:
+        """
+        Function that scrapes the reviews (handling pagination),
+        and saves the data to a CSV file.
+        """  
+        all_products = []
+
+        for reviews_link in reviews_links:
+            logger.info(f"Processing Reviews for product: {reviews_link}")
+            try:
+                product_data = scrape_product_page(driver, logger, reviews_link)
+                if product_data:
+                    all_products.append(product_data)
+                    logger.info(f"✅ Product processed successfully: {product_data}")
+            except Exception as e:
+                logger.error(f"Error processing product {reviews_link}: {e}")
+        driver.quit()
+        save_data_to_csv(all_products, logger)
+            
     def process_products(driver):
         '''
         Process each link and clean the variable right after.
@@ -538,7 +570,10 @@ def run(keywords:str)-> None:
     df_links.to_csv(real_links, index=False)
     #for each link get product info
     process_products(driver)
-
+    try:
+        get_reviews()
+    except Exception as e:
+        logger.info(f"Error while getting reviews: {e}")
     #stop scraping
     driver.quit()
 
@@ -575,8 +610,8 @@ def run(keywords:str)-> None:
             print("No old file found, creating one...")
             logger.info("No old file found, creating one...")
     except FileNotFoundError as e:
-        print ("Not able to locate file: ",e)
-        logger.error(f"Not able to locate file: {e}")
+        print ("Not able to locate file")
+        logger.error(f"Not able to locate file")
     except Exception as e:
         print("Error: ", e)
         logger.error(f"Error: {e}")
