@@ -27,41 +27,40 @@ url = "https://www.bestbuy.com/?intl=nosplash"
 class_search_bar = "search-input"
 class_search_button = "header-search-button"
 
-class_items = "sku-item"
-class_next_button = "sku-list-page-next"
+class_items = "product-list-item"
+class_pagination_btns = "pagination-arrow"
 
 
-class_product_5_star = "ugc-c-review-average.font-weight-medium.order-1"
+class_product_5_star = "font-weight-medium.font-weight-bold.order-1"
 class_product_review_amount = "c-reviews.order-2"
-class_product_sku = "product-data-value.body-copy"
-class_product_img="primary-image.max-w-full.max-h-full"
+class_product_sku = "pr-150.inline-block"
+class_product_img="pflex.jfGDjp1H5YP6xBJc.align-items-center.m-auto.object-contain.px-50 "
 
-class_product_price = "priceView-hero-price.priceView-customer-price"
-class_product_price_btn_modal = "priceView-tap-to-view-price.priceView-tap-to-view-price-bold"
+class_product_price = "customer-price.large_Pdp.text-8.font-500.leading-8.text-default-fixed.large-price.text-6.leading-6"
+id_product_price_btn_modal = "restricted-price"
 class_product_price_div_modal = 'restricted-pricing__regular-price-section'
 class_product_price_innerdiv_modal = 'pricing-price'
 class_product_price_btn_close_modal = "c-close-icon.c-modal-close-icon"
+class_comments_summary = "mt-200.body-copy-lg.mb-none"
 
-class_product_features_btn = "c-button-unstyled.features-drawer-btn.w-full.flex.justify-content-between.align-items-center.py-200"
-class_product_features_seemore_btn = "c-button-unstyled.see-more-button.btn-link.bg-none.p-none.border-none.text-style-body-lg-500"
-class_product_features_description_text = "description-text.lv.text-style-body-lg-400"
-class_product_features_div_of_ul_li = "pdp-utils-product-info"
+class_product_features_btn = "c-button-unstyled font-weight-medium w-full flex justify-content-between align-items-center ZjQDoW6pq08UwL3A".replace(" ",".")
+class_product_features_seemore_btn = "c-button-link text-3 mt-25 font-500".replace(" ",".")
+class_product_features_description_text = "text-style-body-lg-400 m-none whitespace-pre-wrap leading-5".replace(" ",".")
+class_product_features_div_of_ul_li = "overflow-y-auto w-full flex grow".replace(" ",".")
 
-class_btn_more_images = 'image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-corners.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-100.z-1'
-class_div_images =  "c-tile.border.rounded.v-base.thumbnail-container"
-class_div_btn_images = "image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative"
-class_videos_btn = 'tab-title.v-bg-pure-white.border-none.text-primary.heading-6.p-0.relative.t-1px.heading-6.v-fw-regular'
-class_videos_list = 'thumbnail-content.inline-block.mr-150.inline-align-top.mb-300.w-full'
+class_btn_more_images = 'c-button-unstyled flex m-auto h-800 w-800 rounded'.replace(" ",".")
+class_ul_more_imgs = 'c-carousel-list.scrollable'
+class_videos_btn = 'relative border-xs border-solid items-center box-border inline-flex cursor-pointer shrink-0 py-50 min-h-400 border-comp-outline-default-muted bg-transparent rounded-full px-200'.replace(" ",".")
+class_videos_list = 'item.c-carousel-item '
 class_each_video_btn = 'video-image-button.align-items-center.bg-cover.bg-transparent.flex.flex-row.border-none.justify-center.p-none.relative'
 
-class_show_full_specs = "c-button.c-button-outline.c-button-md.show-full-specs-btn.col-xs-6"
-class_ul_item_specs = "zebra-stripe-list.inline.m-none.p-none"
-class_li_item_specs = "zebra-list-item.mt-500"
-class_div_each_spec = "zebra-row.flex.p-200.justify-content-between.body-copy-lg"
-class_div_spec_type = "mr-100.inline"
-class_div_spec_text = "w-full"
+class_show_full_specs = "c-button c-button-outline c-button-md show-full-specs-btn col-xs-6".replace(" ",".")
+class_list_item_specs = "YOqComjRtSwHxjnF pb-400".replace(" ",".")
+class_div_each_spec = "dB7j8sHUbncyf79K inline-flex w-full body-copy-lg".replace(" ",".")
+class_div_spec_header = "grow basis-none font-weight-medium".replace(" ",".")
+class_div_spec_text = "grow basis-none pl-300".replace(" ",".")
 
-class_btn_see_all_reviews = "c-button.c-button-secondary.c-button-md.c-button-block.see-more-reviews.mb-xs-300.mb-md-none.mr-md-400"
+class_btn_see_all_reviews = "relative border-xs border-solid rounded-lg justify-center items-center self-start flex flex-row cursor-pointer px-300 py-100 border-comp-outline-primary-emphasis bg-comp-surface-primary-emphasis mr-200 Op9coqeII1kYHR9Q".replace(" ",".")
 
 # Global Variables
 next_page = None
@@ -165,7 +164,7 @@ def run(keywords:str)-> None:
         except:
             print("No survey popup")
             
-    def scrape_page(driver):
+    def scrape_page(driver: webdriver.Chrome):
         global links
         global next_page
         handle_survey()    
@@ -181,8 +180,13 @@ def run(keywords:str)-> None:
             links.extend([tag.get_attribute("href") for tag in tags])
             
             try:
-                next_page = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, class_next_button))).get_attribute("href")
+                pagination_elements = WebDriverWait(driver, 5).until(
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, class_pagination_btns)))
+                for element in pagination_elements:
+                    if element.get_dom_attribute('arial-label') =="Next page":
+                        next_page = element.get_dom_attribute('href')
+                        break
+                if next_page is None: raise NoSuchElementException("Next page element not found.")
                 print(f"Found next page: {next_page}")
                 logger.info(f"Found next page: {next_page}")
             except:
@@ -197,7 +201,7 @@ def run(keywords:str)-> None:
             print("Error!! ", e)
             logger.error(f"Error: {e}")
 
-    def process_product(driver, link):
+    def process_product(driver: webdriver.Chrome, link):
         global products_data, main_headers
         driver.get(link)
         driver.implicitly_wait(20)
@@ -236,7 +240,9 @@ def run(keywords:str)-> None:
             return
 
         # Product SKU
-        product_info['SKU'] = get_element_text(By.CLASS_NAME, class_product_sku, "Product SKU")
+        element = driver.find_elements(By.CLASS_NAME,class_product_sku)[0]
+        product_info['SKU'] = element.text.replace('Model: ', "").strip()
+        # product_info['SKU'] = get_element_text(By.CLASS_NAME, class_product_sku, "Product SKU")
 
         # Product Image
         product_info['Image Link'] = get_element_attribute(By.CLASS_NAME, class_product_img, 'src', "Product Image")
@@ -246,78 +252,72 @@ def run(keywords:str)-> None:
         product_info['Review Amount'] = get_element_text(By.CLASS_NAME, class_product_review_amount, "Review Amount", timeout=30)
         
         # Product Comments Summary
-        product_info['Comments Summary'] = get_element_text(By.CLASS_NAME, 'mb-200.mt-none', "Comments Summary", timeout=10)
+        product_info['Comments Summary'] = get_element_text(By.CLASS_NAME, class_comments_summary, "Comments Summary", timeout=10)
 
         # Product Price
         try:
             price_div = driver.find_element(By.CLASS_NAME, class_product_price)
-            product_info['Price'] = price_div.find_element(By.TAG_NAME, 'span').text
+            product_info['Price'] = price_div.text
+            # product_info['Price'] = price_div.find_element(By.TAG_NAME, 'span').text
         except Exception as e:
-            try:
-                driver.find_element(By.CLASS_NAME,class_product_price_btn_modal).click()
-                try:
-                    price_div = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, class_product_price_div_modal))
-                    )
-                    price_div = price_div.find_element(By.CLASS_NAME, class_product_price_innerdiv_modal)
-                    price_div = price_div.find_element(By.CLASS_NAME, class_product_price)
-                    price = price_div.find_element(By.TAG_NAME, 'span').text
-                    product_info['Price'] = price
-                except Exception as e_text:
-                    logger.error("Couldn't get the price because ", e_text)
-                    product_info['Price'] = ""
-                        #I was having problem to click in the button, this is an atomic bomb, I know
-                try:
-                    #Uses Selenium to click
-                    close_btn = WebDriverWait(driver, 3).until(
-                        EC.element_to_be_clickable((By.CLASS_NAME, class_product_price_btn_close_modal))
-                    )
-                    close_btn.click()
-                except Exception as e:
-                    print(f"Error clicking close button: {e}")
-                    try:
-                        # Uses JS to click
-                        driver.execute_script("arguments[0].click();", close_btn)
-                    except Exception as js_e:
-                        print(f"Error clicking close button with JS: {js_e}")
-                        try:
-                            #Just refresh if everything fails
-                            driver.refresh()
-                        except Exception as all_e:
-                            print("Error in all atempts to click in the close button: ", all_e)
-            except: logger.error("Couldn't close the modal nand/nor get the price properly")
+            product_info['Price'] = "N/A"
+            # try:
+            #     driver.find_element(By.ID,id_product_price_btn_modal).click()
+            #     try:
+            #         price_div = WebDriverWait(driver, 5).until(
+            #             EC.presence_of_element_located((By.CLASS_NAME, class_product_price_div_modal))
+            #         )
+            #         price_div = price_div.find_element(By.CLASS_NAME, class_product_price_innerdiv_modal)
+            #         price_div = price_div.find_element(By.CLASS_NAME, class_product_price)
+            #         price = price_div.find_element(By.TAG_NAME, 'span').text
+            #         product_info['Price'] = price
+            #     except Exception as e_text:
+            #         logger.error("Couldn't get the price because ", e_text)
+            #         product_info['Price'] = ""
+            #             #I was having problem to click in the button, this is an atomic bomb, I know
+            #     try:
+            #         #Uses Selenium to click
+            #         close_btn = WebDriverWait(driver, 3).until(
+            #             EC.element_to_be_clickable((By.CLASS_NAME, class_product_price_btn_close_modal))
+            #         )
+            #         close_btn.click()
+            #     except Exception as e:
+            #         print(f"Error clicking close button: {e}")
+            #         try:
+            #             # Uses JS to click
+            #             driver.execute_script("arguments[0].click();", close_btn)
+            #         except Exception as js_e:
+            #             print(f"Error clicking close button with JS: {js_e}")
+            #             try:
+            #                 #Just refresh if everything fails
+            #                 driver.refresh()
+            #             except Exception as all_e:
+            #                 print("Error in all atempts to click in the close button: ", all_e)
+            # except: logger.error("Couldn't close the modal nand/nor get the price properly")
 
         # More Product Images
-        inner_div_more_images = []
-        btn_images = []
-        images = []
+        images = [str]
         try:
             btn_more_images = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.CLASS_NAME, class_btn_more_images)))
             btn_more_images.click()
             try:
-                div_ol_more_images = driver.find_element(By.CLASS_NAME,'carousel-indicate.flex.flex-row.flex-wrap')
+                ul_more_images = driver.find_element(By.CLASS_NAME,class_ul_more_imgs)
                 try:
-                    div_li_more_images = div_ol_more_images.find_elements(By.CLASS_NAME,'thumbnail-content.inline-block.mr-150.mb-150.inline-align-top')
+                    img_more_images = ul_more_images.find_elements(By.TAG_NAME,'img')
                     try:
-                        for each_li in div_li_more_images:
-                            inner_div_more_images.append(each_li.find_element(By.CLASS_NAME,class_div_images))
-                        for each_div_more_images in inner_div_more_images:
-                            btn_images.append(each_div_more_images.find_element(By.TAG_NAME, 'button'))
-                        for each_btn in btn_images:
-                            try:
-                                images.append(each_btn.find_element(By.TAG_NAME,'img').get_attribute('src'))
-                            except: pass
+                        for img in  img_more_images:
+                            images.append(img.get_dom_attribute("srcset"))
                         product_info['More Images Links'] = images  
                     except Exception as e: 
                         product_info['More Images Links'] = "N/A"
                         print("Error getting More Images could not get the div, or buttons, or image of each image", e)
                 except Exception as e:
                     product_info['More Images Links'] = "N/A"
-                    print("Error getting More Images could not get the <li>s", e)    
+                    print("Error getting More Images could not get the <img>s", e)    
             except Exception as e:       
                 product_info['More Images Links'] = "N/A"
-                print("Error getting More Images could not get the <ol>", e) 
+                print("Error getting More Images could not get the <ul>", e) 
         except Exception as e: 
             product_info['More Images Links'] = "N/A"
             logger.error("Error getting More Images, could not click in the more images button", e)
@@ -332,7 +332,7 @@ def run(keywords:str)-> None:
                 list_of_videos = WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.CLASS_NAME,class_videos_list)))      
                 try:
                     for item in list_of_videos:
-                        button_list.append(item.find_element(By.CLASS_NAME,class_each_video_btn))
+                        button_list.append(item.find_element(By.TAG_NAME,'button'))
                     try:
                         for button in button_list:
                             try:
@@ -413,11 +413,11 @@ def run(keywords:str)-> None:
 
 
         # Energy Guide
-        product_info['Energy Guide'] = get_element_attribute(By.CLASS_NAME, 'c-button-link.energy-guide-link.ml-150', 'href', "Energy Guide")
+        product_info['Energy Guide'] = get_element_attribute(By.CLASS_NAME, 'c-button-link.px-150.body-copy-lg', 'href', "Energy Guide")
 
         # User Manual and Spec Sheet
         try:
-            documents = driver.find_elements(By.CLASS_NAME, 'manual-link.body-copy-lg')
+            documents = driver.find_elements(By.CLASS_NAME, 'list-pipe')
             product_info['User Manual'] = documents[0].get_attribute('href') if len(documents) > 0 else "N/A"
             product_info['Spec Sheet'] = documents[1].get_attribute('href') if len(documents) > 1 else "N/A"
         except Exception as e:
@@ -438,18 +438,16 @@ def run(keywords:str)-> None:
                 logger.error(f'Error clicking in the Spec btn - {e}')
         
         try:
-            list_of_specs_ul = WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, class_ul_item_specs))
+            list_of_specs = WebDriverWait(driver, 30).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, class_list_item_specs))
             )
 
-            for each_item in list_of_specs_ul:
+            for each_item in list_of_specs:
                 try:
                     spec_items = each_item.find_elements(By.CLASS_NAME, class_div_each_spec)
                     for spec_item in spec_items:
-                        header = spec_item.find_element(By.CLASS_NAME, class_div_spec_type).text
-                        #I could not find a way of getting the spec text with CSS Classes
-                        #Then I could fetch by XPATH on a generic mode
-                        spec = spec_item.find_element(By.XPATH, ".//div[contains(@class, 'w-full') and not(contains(@class, 'mr-200'))]").text
+                        header = spec_item.find_element(By.CLASS_NAME, class_div_spec_header).text
+                        spec = spec_item.find_element(By.CLASS_NAME, class_div_spec_text).text
                         product_info[header] = spec
                         if header not in main_headers:
                             main_headers.append(header)
@@ -463,6 +461,10 @@ def run(keywords:str)-> None:
             
         print(f'COMPLETE SPEC ADDED:{product_info}\n')
         products_data.append(product_info)
+        driver.find_element(
+            By.CLASS_NAME,"relative border-xs justify-center items-center flex flex-row bg-comp-surface-transparent border-transparent p-0 w-300 h-300 border-none rounded-md cursor-pointer z-50 self-start grow-0".replace(" ", ",")
+            ).click()
+    
         get_reviews_link()
         
     def get_reviews_link():
