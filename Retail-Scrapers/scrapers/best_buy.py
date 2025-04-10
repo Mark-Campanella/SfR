@@ -23,45 +23,42 @@ url = "https://www.bestbuy.com/?intl=nosplash"
 
 #-----------------------------------------------------Do Not Modify if no changes are required------------------------------------------------------#
 
-
 class_search_bar = "search-input"
 class_search_button = "header-search-button"
 
 class_items = "sku-item"
-class_pagination_btns = "sku-list-page-next"
+class_next_button = "sku-list-page-next"
 
 
-class_product_5_star = "font-weight-medium.font-weight-bold.order-1"
+class_product_5_star = "ugc-c-review-average.font-weight-medium.order-1"
 class_product_review_amount = "c-reviews.order-2"
-class_product_sku = "product-data-value text-info ml-50 body-copy".replace(" ",".") 
-class_product_img="pflex.jfGDjp1H5YP6xBJc.align-items-center.m-auto.object-contain.px-50 "
+class_product_sku = "product-data-value.body-copy"
+class_product_img="primary-image.max-w-full.max-h-full"
 
-class_product_price = "customer-price.large_Pdp.text-8.font-500.leading-8.text-default-fixed.large-price.text-6.leading-6"
-id_product_price_btn_modal = "restricted-price"
+class_product_price = "priceView-hero-price.priceView-customer-price"
+class_product_price_btn_modal = "priceView-tap-to-view-price.priceView-tap-to-view-price-bold"
 class_product_price_div_modal = 'restricted-pricing__regular-price-section'
 class_product_price_innerdiv_modal = 'pricing-price'
 class_product_price_btn_close_modal = "c-close-icon.c-modal-close-icon"
-class_comments_summary = "mt-200.body-copy-lg.mb-none"
 
-class_product_features_btn = "c-button-unstyled font-weight-medium w-full flex justify-content-between align-items-center ZjQDoW6pq08UwL3A".replace(" ",".")
-class_product_features_seemore_btn = "c-button-link text-3 mt-25 font-500".replace(" ",".")
-class_product_features_description_text = "text-style-body-lg-400 m-none whitespace-pre-wrap leading-5".replace(" ",".")
-class_product_features_div_of_ul_li = "overflow-y-auto w-full flex grow".replace(" ",".")
+class_product_features_btn = "c-button-unstyled.features-drawer-btn.w-full.flex.justify-content-between.align-items-center.py-200"
+class_product_features_seemore_btn = "c-button-unstyled.see-more-button.btn-link.bg-none.p-none.border-none.text-style-body-lg-500"
+class_product_features_description_text = "description-text.lv.text-style-body-lg-400"
+class_product_features_div_of_ul_li = "pdp-utils-product-info"
 
-class_btn_more_images = 'c-button-unstyled flex m-auto h-800 w-800 rounded'.replace(" ",".")
-class_ul_more_imgs = 'c-carousel-list.scrollable'
-class_videos_btn = 'relative border-xs border-solid items-center box-border inline-flex cursor-pointer shrink-0 py-50 min-h-400 border-comp-outline-default-muted bg-transparent rounded-full px-200'.replace(" ",".")
-class_videos_list = 'item.c-carousel-item '
+class_btn_more_images = 'image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-corners.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative.rounded-100.z-1'
+class_div_images =  "c-tile.border.rounded.v-base.thumbnail-container"
+class_div_btn_images = "image-button.align-items-center.bg-cover.bg-transparent.flex.flex-column.border-none.justify-center.p-none.relative"
+class_videos_btn = 'tab-title.v-bg-pure-white.border-none.text-primary.heading-6.p-0.relative.t-1px.heading-6.v-fw-regular'
+class_videos_list = 'thumbnail-content.inline-block.mr-150.inline-align-top.mb-300.w-full'
 class_each_video_btn = 'video-image-button.align-items-center.bg-cover.bg-transparent.flex.flex-row.border-none.justify-center.p-none.relative'
 
-class_show_full_specs = "c-button c-button-outline c-button-md show-full-specs-btn col-xs-6".replace(" ",".")
-class_list_item_specs = "YOqComjRtSwHxjnF pb-400".replace(" ",".")
-class_div_each_spec = "dB7j8sHUbncyf79K inline-flex w-full body-copy-lg".replace(" ",".")
-class_div_spec_header = "grow basis-none font-weight-medium".replace(" ",".")
-class_div_spec_text = "grow basis-none pl-300".replace(" ",".")
-
-class_btn_see_all_reviews = "relative border-xs border-solid rounded-lg justify-center items-center self-start flex flex-row cursor-pointer px-300 py-100 border-comp-outline-primary-emphasis bg-comp-surface-primary-emphasis mr-200 Op9coqeII1kYHR9Q".replace(" ",".")
-
+class_show_full_specs = "c-button.c-button-outline.c-button-md.show-full-specs-btn.col-xs-6"
+class_ul_item_specs = "zebra-stripe-list.inline.m-none.p-none"
+class_li_item_specs = "zebra-list-item.mt-500"
+class_div_each_spec = "zebra-row.flex.p-200.justify-content-between.body-copy-lg"
+class_div_spec_type = "mr-100.inline"
+class_div_spec_text = "w-full"
 
 # Global Variables
 next_page = None
@@ -180,7 +177,7 @@ def run(keywords:str)-> None:
             
             try:
                 next_page = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, class_pagination_btns)))
+                    EC.presence_of_element_located((By.CLASS_NAME, class_next_button)))
                 if next_page is None: raise NoSuchElementException("Next page element not found.")
                 print(f"Found next page: {next_page.get_dom_attribute('href')}")
                 logger.info(f"Found next page: {next_page.get_dom_attribute('href')}")
