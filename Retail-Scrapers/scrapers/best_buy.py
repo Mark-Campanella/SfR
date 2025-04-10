@@ -27,13 +27,13 @@ url = "https://www.bestbuy.com/?intl=nosplash"
 class_search_bar = "search-input"
 class_search_button = "header-search-button"
 
-class_items = "product-list-item"
-class_pagination_btns = "pagination-arrow"
+class_items = "sku-item"
+class_pagination_btns = "sku-list-page-next"
 
 
 class_product_5_star = "font-weight-medium.font-weight-bold.order-1"
 class_product_review_amount = "c-reviews.order-2"
-class_product_sku = "pr-150.inline-block"
+class_product_sku = "product-data-value text-info ml-50 body-copy".replace(" ",".") 
 class_product_img="pflex.jfGDjp1H5YP6xBJc.align-items-center.m-auto.object-contain.px-50 "
 
 class_product_price = "customer-price.large_Pdp.text-8.font-500.leading-8.text-default-fixed.large-price.text-6.leading-6"
@@ -129,7 +129,7 @@ def run(keywords:str)-> None:
     # disable extensions
     chrome_options.add_argument("--disable-extensions")
     #run in headless mode
-    chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
     # disable sandbox mode
     chrome_options.add_argument('--no-sandbox')
     # disable shared memory usage
@@ -179,15 +179,11 @@ def run(keywords:str)-> None:
             links.extend([tag.get_attribute("href") for tag in tags])
             
             try:
-                pagination_elements = WebDriverWait(driver, 5).until(
-                    EC.presence_of_all_elements_located((By.CLASS_NAME, class_pagination_btns)))
-                for element in pagination_elements:
-                    if element.get_dom_attribute('arial-label') =="Next page":
-                        next_page = element.get_dom_attribute('href')
-                        break
+                next_page = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, class_pagination_btns)))
                 if next_page is None: raise NoSuchElementException("Next page element not found.")
-                print(f"Found next page: {next_page}")
-                logger.info(f"Found next page: {next_page}")
+                print(f"Found next page: {next_page.get_dom_attribute('href')}")
+                logger.info(f"Found next page: {next_page.get_dom_attribute('href')}")
             except:
                 next_page = None
                 print("No next page found.")
@@ -196,10 +192,14 @@ def run(keywords:str)-> None:
                 df = pd.DataFrame(links, columns=['Product Links'])
                 df = df.drop_duplicates()
                 df.to_csv(real_links, index=False)
+            finally:
+                return next_page
+            
         except Exception as e:
-            print("Error!! ", e)
-            logger.error(f"Error: {e}")
-
+            print("Error getting the list of items!! ", e)
+            logger.error(f"Error getting the list of items!! : {e}")
+            exit(-1)
+            
     def process_product(driver: webdriver.Chrome, link):
         global products_data, main_headers
         driver.get(link)
@@ -239,9 +239,8 @@ def run(keywords:str)-> None:
             return
 
         # Product SKU
-        element = driver.find_elements(By.CLASS_NAME,class_product_sku)[0]
-        product_info['SKU'] = element.text.replace('Model: ', "").strip()
-        # product_info['SKU'] = get_element_text(By.CLASS_NAME, class_product_sku, "Product SKU")
+        # element = get_element_text(By.CLASS_NAME,class_product_sku, "Product SKU")
+        product_info['SKU'] = get_element_text(By.CLASS_NAME, class_product_sku, "Product SKU")
 
         # Product Image
         product_info['Image Link'] = get_element_attribute(By.CLASS_NAME, class_product_img, 'src', "Product Image")
@@ -508,12 +507,12 @@ def run(keywords:str)-> None:
                 while True:
                     print("Scraping page: ",i)
                     handle_survey()
-                    scrape_page(driver)
+                    next_page = scrape_page(driver)
                     if next_page: 
                         i+=1
-                        driver.get(next_page)
-                        print(f"Navigating to next page: {next_page}: {i}")
-                        logger.info(f"Navigating to next page: {next_page}: {i}")
+                        next_page.click()
+                        print(f"Navigating to next page: {i}")
+                        logger.info(f"Navigating to next page: {next_page.get_dom_attribute('href')}: {i}")
                     else: 
                         break
         #If file doesn't exist, run routine to get it and save it later
@@ -522,12 +521,12 @@ def run(keywords:str)-> None:
             while True:
                 print("Scraping page: ",i)
                 handle_survey()
-                scrape_page(driver)
+                next_page = scrape_page(driver)
                 if next_page: 
                     i+=1
-                    driver.get(next_page)
-                    print(f"Navigating to next page: {next_page}: {i}")
-                    logger.info(f"Navigating to next page: {next_page}: {i}")
+                    next_page.click()
+                    print(f"Navigating to next page: {i}")
+                    logger.info(f"Navigating to next page: {next_page.get_dom_attribute('href')}: {i}")
                 else: 
                     break
         
