@@ -52,7 +52,6 @@ class_div_btn_images = "image-button.align-items-center.bg-cover.bg-transparent.
 class_videos_btn = 'tab-title.v-bg-pure-white.border-none.text-primary.heading-6.p-0.relative.t-1px.heading-6.v-fw-regular'
 class_videos_list = 'thumbnail-content.inline-block.mr-150.inline-align-top.mb-300.w-full'
 class_each_video_btn = 'video-image-button.align-items-center.bg-cover.bg-transparent.flex.flex-row.border-none.justify-center.p-none.relative'
-
 class_show_full_specs = "c-button.c-button-outline.c-button-md.show-full-specs-btn.col-xs-6"
 class_ul_item_specs = "zebra-stripe-list.inline.m-none.p-none"
 class_li_item_specs = "zebra-list-item.mt-500"
@@ -126,7 +125,7 @@ def run(keywords:str)-> None:
     # disable extensions
     chrome_options.add_argument("--disable-extensions")
     #run in headless mode
-    chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
     # disable sandbox mode
     chrome_options.add_argument('--no-sandbox')
     # disable shared memory usage
