@@ -13,6 +13,7 @@ from scrapers.routines.Laundry.bb_merger import merge
 import random
 import logging
 from datetime import datetime
+import undetected_chromedriver as uc
 
 
 
@@ -34,7 +35,7 @@ class_pagination_btns = "pagination-arrow"
 class_product_5_star = "font-weight-medium.font-weight-bold.order-1"
 class_product_review_amount = "c-reviews.order-2"
 class_product_sku = "pr-150.inline-block"
-class_product_img="pflex.jfGDjp1H5YP6xBJc.align-items-center.m-auto.object-contain.px-50 "
+class_product_img="flex jfGDjp1H5YP6xBJc align-items-center m-auto object-contain px-50".replace(" ",".")
 
 class_product_price = "customer-price.large_Pdp.text-8.font-500.leading-8.text-default-fixed.large-price.text-6.leading-6"
 id_product_price_btn_modal = "restricted-price"
@@ -46,7 +47,8 @@ class_comments_summary = "mt-200.body-copy-lg.mb-none"
 class_product_features_btn = "c-button-unstyled font-weight-medium w-full flex justify-content-between align-items-center ZjQDoW6pq08UwL3A".replace(" ",".")
 class_product_features_seemore_btn = "c-button-link text-3 mt-25 font-500".replace(" ",".")
 class_product_features_description_text = "text-style-body-lg-400 m-none whitespace-pre-wrap leading-5".replace(" ",".")
-class_product_features_div_of_ul_li = "overflow-y-auto w-full flex grow".replace(" ",".")
+class_product_features_div_of_ul_li = "pl-300".replace(" ",".")
+class_close_features_btn = "relative border-xs justify-center items-center flex flex-row bg-comp-surface-transparent border-transparent p-0 w-300 h-300 border-none rounded-md cursor-pointer z-50 self-start grow-0".replace(" ",".")
 
 class_btn_more_images = 'c-button-unstyled flex m-auto h-800 w-800 rounded'.replace(" ",".")
 class_ul_more_imgs = 'c-carousel-list.scrollable'
@@ -55,7 +57,7 @@ class_videos_list = 'item.c-carousel-item '
 class_each_video_btn = 'video-image-button.align-items-center.bg-cover.bg-transparent.flex.flex-row.border-none.justify-center.p-none.relative'
 
 class_show_full_specs = "c-button c-button-outline c-button-md show-full-specs-btn col-xs-6".replace(" ",".")
-class_list_item_specs = "YOqComjRtSwHxjnF pb-400".replace(" ",".")
+class_list_item_specs = "grow p-200 pt-100 md__p-300 md__pt-200".replace(" ",".")
 class_div_each_spec = "dB7j8sHUbncyf79K inline-flex w-full body-copy-lg".replace(" ",".")
 class_div_spec_header = "grow basis-none font-weight-medium".replace(" ",".")
 class_div_spec_text = "grow basis-none pl-300".replace(" ",".")
@@ -102,7 +104,6 @@ def run(keywords:str)-> None:
     global old_file
     global no_file
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
-    chrome_options = Options()
     user_agents = [
         # Add your list of user agents here
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
@@ -114,7 +115,7 @@ def run(keywords:str)-> None:
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
     ]
     user_agent = random.choice(user_agents)
-    #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
+
     chrome_options = Options()
     # start the browser window in maximized mode
     chrome_options.add_argument("--start-maximized")
@@ -122,6 +123,8 @@ def run(keywords:str)-> None:
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-geolocation")
     chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--disable-media_stream")
+
     # disable pop-up blocking
     chrome_options.add_argument("--disable-popup-blocking")
     #run in incognito mode
@@ -129,15 +132,17 @@ def run(keywords:str)-> None:
     # disable extensions
     chrome_options.add_argument("--disable-extensions")
     #run in headless mode
-    chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--window-size=1920,1080")
     # disable sandbox mode
     chrome_options.add_argument('--no-sandbox')
     # disable shared memory usage
     chrome_options.add_argument('--disable-dev-shm-usage')
-    # rotate user agents 
+    # rotate user agents
     chrome_options.add_argument(f'user-agent={user_agent}')
+    chrome_options.add_argument("--lang=pt-BR")
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = uc.Chrome(options=chrome_options)
     # Change the property value of the navigator for webdriver to undefined
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     stealth(driver,
@@ -146,7 +151,6 @@ def run(keywords:str)-> None:
             webgl_vendor="Intel Inc.",
             renderer="Intel Iris OpenGL Engine",
             fix_hairline=True)
-
 
     search_for = keywords
     #----------------------------------------------------------------Functions-------------------------------------------------------------------------#
@@ -352,7 +356,7 @@ def run(keywords:str)-> None:
         except Exception as e:
             print("Couldn't click quit button, refreashing...")
             driver.refresh()
-
+        time.sleep(5)
         try:
             description_features = []
             try:
@@ -378,8 +382,16 @@ def run(keywords:str)-> None:
                 ).text
 
                 description_features.append(features_description)
-            except: print('No text description found')
-            
+            except:
+                try:
+                    # Wait for and extract the main features description
+                    features_description = WebDriverWait(driver, 30).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, (class_product_features_description_text+".clamp")))
+                    ).text
+
+                    description_features.append(features_description)
+                except: print('No text description found')
+                
             # Wait for the div containing the list of features
             div_of_features = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.CLASS_NAME, class_product_features_div_of_ul_li))
@@ -420,12 +432,17 @@ def run(keywords:str)-> None:
             product_info['User Manual'] = documents[0].get_attribute('href') if len(documents) > 0 else "N/A"
             product_info['Spec Sheet'] = documents[1].get_attribute('href') if len(documents) > 1 else "N/A"
         except Exception as e:
-            log_error("Manual and Spec Sheet", e)
+            log_error("Manual and Spec Sheet Error", e)
             product_info['User Manual'], product_info['Spec Sheet'] = "N/A", "N/A"
 
         # Add to global data
         products_data.append(product_info)
-        
+        try:
+            driver.find_element(By.CLASS_NAME,class_close_features_btn).click()
+        except Exception as e:
+            print("Couldn't click quit button on FEATURES, refreashing...")
+            driver.refresh()
+            
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
             WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
@@ -438,8 +455,9 @@ def run(keywords:str)-> None:
         
         try:
             list_of_specs = WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, class_list_item_specs))
+                EC.presence_of_element_located((By.CLASS_NAME, class_list_item_specs))
             )
+            list_of_specs = list_of_specs.find_elements(By.TAG_NAME, "li")
 
             for each_item in list_of_specs:
                 try:
@@ -460,7 +478,7 @@ def run(keywords:str)-> None:
             
         print(f'COMPLETE SPEC ADDED:{product_info}\n')
         products_data.append(product_info)
-    def process_products(driver):
+    def process_products(driver: webdriver.Chrome):
         '''
         Process each link and clean the variable right after.
         \nDROP DUPLICATES → There are quite a lot of sponsored data
@@ -476,6 +494,10 @@ def run(keywords:str)-> None:
     #---------------------------------------------------------------------------Begining---------------------------------------------------------------------#
     global products_data
     try:        
+        # driver.get("https://bot.sannysoft.com/")
+        # time.sleep(2)
+        # driver.save_screenshot("webdriver_test.png")       
+        # driver.quit() 
         driver.get(url)
         handle_survey()
         driver.implicitly_wait(20)  # Wait for it to load
@@ -499,7 +521,7 @@ def run(keywords:str)-> None:
         '''
         try:
             #If exists, run based on the links given
-            links = pd.read_csv(no_file)
+            links = pd.read_csv(real_links)
             links = links["Product Links"].to_list()
             
             #If no links in the file, execute the routine
