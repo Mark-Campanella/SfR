@@ -11,3 +11,5 @@ Retail-Scrapers/outputs/Best_Buy/removed_models.csv
 Retail-Scrapers/statics/old_file.csv
 .env
 output/
+.vscode/settings.json
+/Nova pasta
