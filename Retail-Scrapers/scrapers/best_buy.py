@@ -126,7 +126,7 @@ def run(keywords:str)-> None:
     # disable extensions
     chrome_options.add_argument("--disable-extensions")
     #run in headless mode
-    chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
+    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
     # disable sandbox mode
     chrome_options.add_argument('--no-sandbox')
     # disable shared memory usage
@@ -418,7 +418,16 @@ def run(keywords:str)-> None:
         except Exception as e:
             log_error("Manual and Spec Sheet", e)
             product_info['User Manual'], product_info['Spec Sheet'] = "N/A", "N/A"
-
+        finally:
+            try:
+                # Click the close button for the features modal
+                close_btn = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, 'h-full flex flex-column'))
+                ).find_element(By.CLASS_NAME, 'c-close-icon')
+                close_btn.click()
+            except Exception as e:
+                print("Error clicking close button, refreashing...")
+                driver.refresh()
         # Add to global data
         products_data.append(product_info)
         
