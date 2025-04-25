@@ -13,3 +13,6 @@ Retail-Scrapers/statics/old_file.csv
 output/
 .vscode/settings.json
 /Nova pasta
+/Retail-Scrapers/screenshots
+Retail-Scrapers/scrapers/driver_setup/test.py
+Retail-Scrapers/fingerprint_results.json

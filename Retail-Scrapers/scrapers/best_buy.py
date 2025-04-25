@@ -6,15 +6,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementClickInterceptedException, ElementNotInteractableException, StaleElementReferenceException
-from selenium_stealth import stealth
 import pandas as pd
 from scrapers.routines.Laundry.bb_file_cleaner import cleanup
 from scrapers.routines.Laundry.bb_merger import merge
+from scrapers.driver_setup.driver import StealthBrowser 
 import random
 import logging
 from datetime import datetime
 import undetected_chromedriver as uc
-
 
 
 
@@ -104,64 +103,19 @@ def run(keywords:str)-> None:
     global old_file
     global no_file
     #-------------------------------------------------------Driver CONFIGURATION-------------------------------------------------------------------------#
-    user_agents = [
-        # Add your list of user agents here
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
-    ]
-    user_agent = random.choice(user_agents)
-
-    chrome_options = Options()
-    # start the browser window in maximized mode
-    chrome_options.add_argument("--start-maximized")
-    # disable the AutomationControlled feature of Blink rendering engine
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--disable-geolocation")
-    chrome_options.add_argument("--disable-notifications")
-    chrome_options.add_argument("--disable-media_stream")
-
-    # disable pop-up blocking
-    chrome_options.add_argument("--disable-popup-blocking")
-    #run in incognito mode
-    chrome_options.add_argument("--incognito")
-    # disable extensions
-    chrome_options.add_argument("--disable-extensions")
-    #run in headless mode
-    # chrome_options.add_argument("--headless") #improve efficiency, decrease trustability
-    # chrome_options.add_argument("--window-size=1920,1080")
-    # disable sandbox mode
-    chrome_options.add_argument('--no-sandbox')
-    # disable shared memory usage
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    # rotate user agents
-    chrome_options.add_argument(f'user-agent={user_agent}')
-    chrome_options.add_argument("--lang=pt-BR")
-
-    driver = uc.Chrome(options=chrome_options)
-    # Change the property value of the navigator for webdriver to undefined
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    stealth(driver,
-            vendor="Google Inc.",
-            platform="Win32",
-            webgl_vendor="Intel Inc.",
-            renderer="Intel Iris OpenGL Engine",
-            fix_hairline=True)
 
     search_for = keywords
     #----------------------------------------------------------------Functions-------------------------------------------------------------------------#
-
+    browser = StealthBrowser(logger=logger)
+    driver = browser.driver if browser.driver else webdriver.Chrome()
+    
     def handle_survey():
         try:
             # If survey is noticed then click the no button, else, continue
             no_thanks_button = WebDriverWait(driver, 2).until(
                 EC.presence_of_element_located((By.ID, "survey_invite_no"))
             )
-            no_thanks_button.click()
+            browser.human_click(no_thanks_button)
             print("Survey dismissed")
             logger.info("Survey appeared and was dismissed")
         except:
@@ -180,6 +134,7 @@ def run(keywords:str)-> None:
             logger.info(f"Found {len(elems)} elements with class {class_items}.")
 
             tags = [elem.find_element(By.TAG_NAME, "a") for elem in elems]
+            links = list(links)  # Ensure links is a list
             links.extend([tag.get_attribute("href") for tag in tags])
             
             try:
@@ -222,6 +177,9 @@ def run(keywords:str)-> None:
                 element = WebDriverWait(driver, timeout).until(
                     EC.presence_of_element_located((by, identifier))
                 )
+                browser.human_scroll(10)
+                browser.move_mouse_to_element(element)
+                browser.human_scroll(-10)
                 return element.text
             except Exception as e:
                 log_error(section_name, e)
@@ -232,6 +190,9 @@ def run(keywords:str)-> None:
                 element = WebDriverWait(driver, timeout).until(
                     EC.presence_of_element_located((by, identifier))
                 )
+                browser.human_scroll(10)
+                browser.move_mouse_to_element(element)
+                browser.human_scroll(-10)
                 return element.get_dom_attribute(attribute)
             except Exception as e:
                 log_error(section_name, e)
@@ -299,11 +260,11 @@ def run(keywords:str)-> None:
             # except: logger.error("Couldn't close the modal nand/nor get the price properly")
 
         # More Product Images
-        images = [str]
+        images = []
         try:
             btn_more_images = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.CLASS_NAME, class_btn_more_images)))
-            btn_more_images.click()
+            browser.human_click(btn_more_images)
             try:
                 ul_more_images = driver.find_element(By.CLASS_NAME,class_ul_more_imgs)
                 try:
@@ -330,7 +291,7 @@ def run(keywords:str)-> None:
             videos=[]
             button_list = []
             btn_videos = driver.find_element(By.CLASS_NAME, class_videos_btn)
-            btn_videos.click()
+            browser.human_click(btn_videos)
             try:    
                 list_of_videos = WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.CLASS_NAME,class_videos_list)))      
                 try:
@@ -339,7 +300,7 @@ def run(keywords:str)-> None:
                     try:
                         for button in button_list:
                             try:
-                                button.click()
+                                browser.human_click(button)
                                 video = WebDriverWait(driver,5).until(EC.presence_of_element_located((By.TAG_NAME,'source'))).get_attribute('src')
                                 videos.append(video)
                             except:
@@ -352,7 +313,7 @@ def run(keywords:str)-> None:
             product_info['Videos Links'] = "N/A"
             print("Error getting Videos Links:", e)    
         try: 
-            driver.find_element(By.CLASS_NAME,"c-close-icon.c-modal-close-icon").click()
+            browser.human_click(driver.find_element(By.CLASS_NAME,"c-close-icon.c-modal-close-icon"))
         except Exception as e:
             print("Couldn't click quit button, refreashing...")
             driver.refresh()
@@ -364,7 +325,7 @@ def run(keywords:str)-> None:
                 features_btn = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.CLASS_NAME, class_product_features_btn))
                 )
-                features_btn.click()
+                browser.human_click(features_btn)
             except Exception as e: print("There was a problem finding the Features Button: ", e)
             
             try:
@@ -372,7 +333,7 @@ def run(keywords:str)-> None:
                 see_more_btn = WebDriverWait(driver, 30).until(
                     EC.element_to_be_clickable((By.CLASS_NAME, class_product_features_seemore_btn))
                 ) 
-                see_more_btn.click()
+                browser.human_click(see_more_btn)
             except Exception as e:
                 print("No 'See More' button found:", e)
             try:
@@ -404,6 +365,8 @@ def run(keywords:str)-> None:
             for each_element in list_of_features:
                 try:
                     try:
+                        browser.human_scroll(10)
+                        browser.move_mouse_to_element(each_element)
                         h4 = each_element.find_element(By.TAG_NAME, 'h4').text
                     except:
                         h4=f'Unamed {i}'
@@ -438,14 +401,14 @@ def run(keywords:str)-> None:
         # Add to global data
         products_data.append(product_info)
         try:
-            driver.find_element(By.CLASS_NAME,class_close_features_btn).click()
+            browser.human_click(driver.find_element(By.CLASS_NAME,class_close_features_btn))
         except Exception as e:
             print("Couldn't click quit button on FEATURES, refreashing...")
             driver.refresh()
             
         #---------------------------------------------------------------------------------------------------------------------------------------------------------------------GET SPECS
         try:
-            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))).click()
+            browser.human_click(WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, class_show_full_specs))))
         except Exception as e:
             try:
                 show_full_specs_btn = driver.find_element(By.CLASS_NAME, class_show_full_specs)
@@ -463,6 +426,8 @@ def run(keywords:str)-> None:
                 try:
                     spec_items = each_item.find_elements(By.CLASS_NAME, class_div_each_spec)
                     for spec_item in spec_items:
+                        browser.human_scroll(10)
+                        browser.move_mouse_to_element(spec_item)
                         header = spec_item.find_element(By.CLASS_NAME, class_div_spec_header).text
                         spec = spec_item.find_element(By.CLASS_NAME, class_div_spec_text).text
                         product_info[header] = spec
@@ -485,6 +450,8 @@ def run(keywords:str)-> None:
         '''
         
         global links
+        if not isinstance(links, list):
+            links = list(links)
         links = pd.Series(links).drop_duplicates().tolist()
         for link in links: 
             process_product(driver, link)
@@ -498,6 +465,7 @@ def run(keywords:str)-> None:
         # time.sleep(2)
         # driver.save_screenshot("webdriver_test.png")       
         # driver.quit() 
+        
         driver.get(url)
         handle_survey()
         driver.implicitly_wait(20)  # Wait for it to load
@@ -505,13 +473,13 @@ def run(keywords:str)-> None:
         logger.info("Page loaded.")
         search = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CLASS_NAME, class_search_bar)))
-        search.send_keys(search_for)
+        browser.human_type(search, search_for)
         
         time.sleep(2)
         
         button = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((By.CLASS_NAME, class_search_button)))
-        button.click()
+        browser.human_click(button)
         
         driver.implicitly_wait(20)  # Wait for it to load
 
