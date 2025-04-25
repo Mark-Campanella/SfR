@@ -14,3 +14,6 @@ output/
 Nova pasta/Scraper for Retailers/Files/_asyncio.pyd
 /Nova pasta
 .vscode/settings.json
+/Retail-Scrapers/screenshots
+Retail-Scrapers/fingerprint_results.json
+Retail-Scrapers/scrapers/driver_setup/test.py
