@@ -13,7 +13,7 @@ from scrapers.routines.Laundry.bb_merger import merge
 import random
 import logging
 from datetime import datetime
-import undetected_chromedriver as uc
+# import undetected_chromedriver as uc
 
 
 
@@ -142,7 +142,7 @@ def run(keywords:str)-> None:
     chrome_options.add_argument(f'user-agent={user_agent}')
     chrome_options.add_argument("--lang=pt-BR")
 
-    driver = uc.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
     # Change the property value of the navigator for webdriver to undefined
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     stealth(driver,
