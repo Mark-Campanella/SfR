@@ -108,7 +108,6 @@ def run(keywords:str)-> None:
     #----------------------------------------------------------------Functions-------------------------------------------------------------------------#
     browser = StealthBrowser(logger=logger)
     driver = browser.driver if browser.driver else webdriver.Chrome()
-    
     def handle_survey():
         try:
             # If survey is noticed then click the no button, else, continue
@@ -454,6 +453,7 @@ def run(keywords:str)-> None:
             links = list(links)
         links = pd.Series(links).drop_duplicates().tolist()
         for link in links: 
+            driver.delete_all_cookies()
             process_product(driver, link)
             print(f'Processing: {links.index(link)+1}/{len(links)}')
         links.clear()
@@ -467,6 +467,8 @@ def run(keywords:str)-> None:
         # driver.quit() 
         
         driver.get(url)
+        driver.delete_all_cookies()
+
         handle_survey()
         driver.implicitly_wait(20)  # Wait for it to load
         print("Page loaded.")
@@ -489,7 +491,7 @@ def run(keywords:str)-> None:
         '''
         try:
             #If exists, run based on the links given
-            links = pd.read_csv(real_links)
+            links = pd.read_csv(no_file)
             links = links["Product Links"].to_list()
             
             #If no links in the file, execute the routine
@@ -532,6 +534,7 @@ def run(keywords:str)-> None:
 
     #stop scraping
     driver.quit()
+    browser.quit()
 
 
     try:

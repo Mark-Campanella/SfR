@@ -16,6 +16,7 @@ from selenium.common.exceptions import (
     MoveTargetOutOfBoundsException,
     TimeoutException,
 ) 
+import undetected_chromedriver as uc
 
 class StealthBrowser:
     """
@@ -32,9 +33,7 @@ class StealthBrowser:
         """
         self.logger = logger
         self.user_agents = [
-            "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.115 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 11.0; Win64; x64; rv:119.0) Gecko/20100101 Chrome/135.0.7049.115 Firefox/119.0",
-        ]
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'        ]
         self.proxies = proxies or []
         self.driver = self.launch()
 
@@ -56,14 +55,14 @@ class StealthBrowser:
         """
         return random.choice(self.proxies) if self.proxies else None
 
-    def launch(self) -> webdriver.Chrome:
+    def launch(self) -> uc.Chrome:
         """
         Launches the Chrome browser with stealth settings and optional proxy.
 
         Returns:
             webdriver.Chrome: The Selenium Chrome driver instance.
         """
-        options = Options()
+        options = uc.ChromeOptions() or Options()
         ua = self._get_random_user_agent()
         proxy = self._get_random_proxy()
 
@@ -80,6 +79,11 @@ class StealthBrowser:
             f"--user-agent={ua}",
             "--lang=pt-BR",
             "--window-size=1920,1080",
+            "--use-gl=angle",  # or "desktop"
+            "--enable-webgl",
+            "--ignore-gpu-blocklist",
+            "--disable-software-rasterizer",
+
         ]
         for flag in flags:
             options.add_argument(flag)
@@ -87,7 +91,8 @@ class StealthBrowser:
         if proxy:
             options.add_argument(f"--proxy-server={proxy}")
 
-        self.driver = webdriver.Chrome(options=options)
+        # self.driver = webdriver.Chrome(options=options)
+        self.driver = uc.Chrome(options=options, use_subprocess=True)
         self._apply_stealth()
         return self.driver
 
@@ -96,18 +101,9 @@ class StealthBrowser:
         Applies stealth settings and fingerprint spoofing using `selenium-stealth`.
         """
         driver = self.driver
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": "Object.defineProperty(navigator, 'webdriver', { get: () => undefined });"
         })
-        stealth(driver,
-                vendor="Google Inc.",
-                platform="Win32",
-                webgl_vendor="Intel Inc.",
-                renderer="Intel Iris OpenGL Engine",
-                fix_hairline=True,
-                languages=["pt-BR", "en-US"],
-                webgl=True)
 
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": self._early_injection_script()
@@ -117,6 +113,15 @@ class StealthBrowser:
             "headers": {"Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8"}
         })
 
+        stealth(driver,
+                vendor="Google Inc.",
+                webgl_vendor="Google Inc.",
+                renderer="ANGLE (Intel, Intel(R) UHD Graphics 620, D3D11)",
+                platform="Win32",
+                fix_hairline=True,
+                languages=["pt-BR", "en-US"],
+                webgl=True)
+
     def _early_injection_script(self) -> str:
         """
         Loads a JavaScript file to inject early in the page lifecycle.
@@ -125,7 +130,7 @@ class StealthBrowser:
             str: JavaScript code as a string.
         """
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        injection_path = os.path.join(script_dir, "injection.js")
+        injection_path = os.path.join(script_dir, "injection2.js")
         with open(injection_path, "r", encoding="utf-8") as f:
             return f.read()
 
